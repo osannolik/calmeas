@@ -37,6 +37,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "math.h"
+#include "calmeas.h"
 
 /** @addtogroup STM32F4xx_HAL_Examples
   * @{
@@ -50,9 +52,17 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+CALMEAS_MEASUREMENT(float, phase_a, 0.0, "Phase A current");
+CALMEAS_MEASUREMENT(float, phase_b, 0.0, "Phase B current");
+CALMEAS_MEASUREMENT(float, phase_c, 0.0, "Phase C current");
+
+CALMEAS_MEASUREMENT(uint8_t, set_led, 0, "Set debug LED on/off");
+CALMEAS_MEASUREMENT(uint8_t, led_sts, 0, "Debug LED status");
+
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 static void Error_Handler(void);
+static void your_fantastic_application(void);
 
 /* Private functions ---------------------------------------------------------*/
 /**
@@ -80,12 +90,38 @@ int main(void)
 
   /* Add your application code here
      */
-
+  uart_init();
+  com_init();
+  calmeas_init();
 
   /* Infinite loop */
   while (1)
   {
+    HAL_Delay(1);
+
+    calmeas_handler();
+    com_handler();
+
+    your_fantastic_application();
   }
+}
+
+void your_fantastic_application(void)
+{
+  static float t = 0;
+
+  if (set_led) {
+
+  } else {
+
+  }
+
+  led_sts = set_led;
+
+  t = t + 0.001;
+  phase_a = 10 * cosf(6.28*1*t);
+  phase_b = 10 * cosf(6.28*1*t - 6.28/3);
+  phase_c = 10 * cosf(6.28*1*t + 6.28/3);
 }
 
 /**

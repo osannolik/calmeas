@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include "queue.h"
+#include "uart.h"
 
 #define COM_INTERFACE             (0)
 
