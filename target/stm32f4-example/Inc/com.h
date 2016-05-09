@@ -35,7 +35,7 @@ typedef enum {
 enum {
   // Must start at 0 and be sequential 0,1,2... etc
   uart = 0,
-  radio,
+  //radio,
   // my_new_port,
   COM_NUMBER_OF_PORTS
 };
