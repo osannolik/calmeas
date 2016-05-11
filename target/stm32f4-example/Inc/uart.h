@@ -2,7 +2,7 @@
  * uart.h
  *
  *  Created on: 29 nov 2015
- *      Author: attertun
+ *      Author: osannolik
  */
 
 #ifndef UART_H_

@@ -10,7 +10,7 @@
 
 // Packet header placed byte-aligned right in front of measurement symbols.
 // This allows a full packet to be constructed in RAM, hence minimizing transfer overhead using e.g. DMA
-com_header_t calmeas_measurement_streaming_header __attribute__ ((section(".meas_hdr"), aligned(1))) = {{0,0}};
+//com_header_t calmeas_measurement_streaming_header __attribute__ ((section(".meas_hdr"), aligned(1))) = {{0,0}};
 
 static calmeas_data_t calmeas_data = CALMEAS_DATA_INIT;
 
@@ -29,9 +29,9 @@ int calmeas_init()
   calmeas_data.nbr_of_meas = ((uint32_t)&_emeas_meta - (uint32_t)(&_smeas_meta))/sizeof(calmeas_meta_t);
   
   // Prepare headers
-  calmeas_measurement_streaming_header.interface = CALMEAS_INTERFACE;
-  calmeas_measurement_streaming_header.id = MEAS_STREAM_ALL;
-  calmeas_measurement_streaming_header.size = (uint8_t) ((uint32_t)&_emeas - (uint32_t)(&_smeas));
+  //calmeas_measurement_streaming_header.interface = CALMEAS_INTERFACE;
+  //calmeas_measurement_streaming_header.id = MEAS_STREAM_ALL;
+  //calmeas_measurement_streaming_header.size = (uint8_t) ((uint32_t)&_emeas - (uint32_t)(&_smeas));
 
   // Create interfaces
   com_enable_interface(CALMEAS_INTERFACE, calmeas_callback_handler);

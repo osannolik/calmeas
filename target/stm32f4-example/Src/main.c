@@ -1,75 +1,26 @@
-/**
-  ******************************************************************************
-  * @file    Templates/Src/main.c 
-  * @author  MCD Application Team
-  * @version V1.2.3
-  * @date    29-January-2016
-  * @brief   Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT(c) 2016 STMicroelectronics</center></h2>
-  *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
-  */
+/*
+ *  An application example where calmeas is used to measure and tune symbols. 
+ *  Designed to work with the STM32F4-Discovery. See uart.h for pinout. 
+ *
+ *  Author: osannolik
+ */
 
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "math.h"
 #include "calmeas.h"
 
-/** @addtogroup STM32F4xx_HAL_Examples
-  * @{
-  */
+// These five symbols will all be available for measurement and tuning
+CALMEAS_SYMBOL(float, phase_a, 0.0, "Phase A current");
+CALMEAS_SYMBOL(float, phase_b, 0.0, "Phase B current");
+CALMEAS_SYMBOL(float, phase_c, 0.0, "Phase C current");
+CALMEAS_SYMBOL(uint8_t, set_led, 0, "Set debug LED on/off");
+CALMEAS_SYMBOL(uint8_t, led_sts, 0, "Debug LED status");
 
-/** @addtogroup Templates
-  * @{
-  */
-
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
-CALMEAS_MEASUREMENT(float, phase_a, 0.0, "Phase A current");
-CALMEAS_MEASUREMENT(float, phase_b, 0.0, "Phase B current");
-CALMEAS_MEASUREMENT(float, phase_c, 0.0, "Phase C current");
-
-CALMEAS_MEASUREMENT(uint8_t, set_led, 0, "Set debug LED on/off");
-CALMEAS_MEASUREMENT(uint8_t, led_sts, 0, "Debug LED status");
-
-/* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 static void Error_Handler(void);
 static void your_fantastic_application(void);
+static void led_init(void);
 
-/* Private functions ---------------------------------------------------------*/
-/**
-  * @brief  Main program
-  * @param  None
-  * @retval None
-  */
 int main(void)
 {
 
@@ -87,21 +38,31 @@ int main(void)
   /* Configure the system clock to 168 MHz */
   SystemClock_Config();
 
-
-  /* Add your application code here
-     */
+  // Initialize peripherals used
   uart_init();
+
+  // Initialize com-module
   com_init();
+
+  // Initialize data structures used by calmeas
   calmeas_init();
 
-  /* Infinite loop */
+  // Initialize stuff used by application
+  led_init();
+
+
+
   while (1)
   {
     HAL_Delay(1);
 
+    // calmeas handler should run periodically
     calmeas_handler();
+
+    // com handler as well, preferably as often or more often than calmeas
     com_handler();
 
+    // Do your magic!
     your_fantastic_application();
   }
 }
@@ -111,9 +72,9 @@ void your_fantastic_application(void)
   static float t = 0;
 
   if (set_led) {
-
+    LED_SET;
   } else {
-
+    LED_RESET;
   }
 
   led_sts = set_led;
@@ -122,6 +83,20 @@ void your_fantastic_application(void)
   phase_a = 10 * cosf(6.28*1*t);
   phase_b = 10 * cosf(6.28*1*t - 6.28/3);
   phase_c = 10 * cosf(6.28*1*t + 6.28/3);
+}
+
+void led_init(void)
+{
+  GPIO_InitTypeDef GPIOinitstruct;
+
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+
+  GPIOinitstruct.Speed = GPIO_SPEED_HIGH;
+  GPIOinitstruct.Pull = GPIO_NOPULL;
+  GPIOinitstruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIOinitstruct.Pin = LED_PIN;
+
+  HAL_GPIO_Init(LED_PORT, &GPIOinitstruct);
 }
 
 /**
@@ -226,12 +201,3 @@ void assert_failed(uint8_t* file, uint32_t line)
 }
 #endif
 
-/**
-  * @}
-  */ 
-
-/**
-  * @}
-  */ 
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

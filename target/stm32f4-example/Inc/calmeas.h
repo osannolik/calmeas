@@ -11,7 +11,7 @@
 #include "stm32f4xx.h"
 #include "com.h"
 
-// Linker variables
+// TODO: Linker variables, all not actually needed
 extern uint32_t _smeas_hdr;
 extern uint32_t _emeas_hdr;
 extern uint32_t _smeas;
@@ -68,6 +68,7 @@ typedef enum {
 
 #define CALMEAS_DATA_INIT          {0, 0, uart, ACCESS_OFF}
 
+// TODO: Here you can define at what periods each raster should be sent
 #define CALMEAS_RASTER_0_PERIOD    (5)  // Relative to calmeas_handler period
 #define CALMEAS_RASTER_1_PERIOD    (20)
 #define CALMEAS_RASTER_2_PERIOD    (200)
@@ -89,6 +90,8 @@ typedef enum {
 #define CALMEAS_TYPECODE_LEN(X)    ((X) & CALMEAS_TYPECODE_LEN_MASK)
 #define CALMEAS_TYPECODE_SIGN(X)   ((X) & CALMEAS_TYPECODE_SIGN_MASK)
 
+// TODO: You need to define these sections in the linker script:
+#define CALMEAS_MEMSEC_META        __attribute__ ((section(".meas_meta"), aligned(1)))
 #define CALMEAS_MEMSEC_4BYTE       __attribute__ ((section(".meas_4B"), aligned(4)))
 #define CALMEAS_MEMSEC_1BYTE       __attribute__ ((section(".meas"), aligned(1)))
 #define CALMEAS_MEMSEC_2BYTE       __attribute__ ((section(".meas"), aligned(1)))
@@ -102,8 +105,8 @@ typedef enum {
 #define CALMEAS_MEMSEC(type)       CALMEAS_MEMSEC_ ## type
 
 
-#define CALMEAS_MEASUREMENT(type, name, init, desc) type name CALMEAS_MEMSEC(type) = init; \
-    calmeas_meta_t calmeas_meta_ ## name __attribute__ ((section(".meas_meta"), aligned(1))) = {CALMEAS_TYPECODE(type), #name, &(name), desc}
+#define CALMEAS_SYMBOL(type, name, init, desc) type name CALMEAS_MEMSEC(type) = init; \
+    calmeas_meta_t calmeas_meta_ ## name CALMEAS_MEMSEC_META = {CALMEAS_TYPECODE(type), #name, &(name), desc}
 
 
 int calmeas_init();

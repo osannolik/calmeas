@@ -23,7 +23,7 @@ int com_init()
     com_interface[i].callback = NULL;
   }
 
-  // Change or add hooks to other ports here
+  // TODO: Add hooks to other ports here
   com_data[uart].receive_hook  = uart_receive_data;
   com_data[uart].send_hook     = uart_send_data;
   //com_data[radio].receive_hook = radio_receive_data;
