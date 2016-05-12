@@ -20,8 +20,6 @@ import pyqtgraph as pg
 pg.setConfigOptions(antialias=True)
 pg.setConfigOption('background', 'w')
 
-from time import time
-
 cobsser = CobsSer()
 comhandler = ComHandlerThread()
 calmeas = CalMeas(comhandler)
@@ -243,22 +241,15 @@ class SymbolListWidget(QtGui.QTabWidget):
         super(SymbolListWidget, self).__init__(parent)
 
         self.tab_meas = QtGui.QWidget()
-        self.tab_param = QtGui.QWidget()
 
         self.addTab(self.tab_meas, "Symbols")
-        self.addTab(self.tab_param, "Parameters")
 
         layout_meas = QtGui.QVBoxLayout()
-        layout_param = QtGui.QVBoxLayout()
-
-        self.paramWidget = ParametersWidget(self)
-        layout_param.addWidget(self.paramWidget)
 
         self.measWidget = MeasurementsWidget(self)
         layout_meas.addWidget(self.measWidget)
 
         self.tab_meas.setLayout(layout_meas)
-        self.tab_param.setLayout(layout_param)
 
     def addSymbols(self, symbols):
         self.measWidget.addMeasureSymbols(symbols)
@@ -266,207 +257,6 @@ class SymbolListWidget(QtGui.QTabWidget):
     def updateWorkingSymbols(self, symbols):
         self.measWidget.treeWidget.clear()
         self.addSymbols(symbols)
-
-
-class ParametersWidget(QtGui.QWidget):
-
-    def __init__(self, parent=None, name=''):
-        super(ParametersWidget, self).__init__(parent)
-
-        #self.name = 'Calibration Table [{}]'.format(name)
-        self.name = "Parameters"
-        self.parent = parent
-        self.initGui()
-
-    def initGui(self):
-        
-        self.layout = QtGui.QVBoxLayout()
-        #self.layout.setMargin(0)
-
-        self.tree = QtGui.QTreeWidget(self)
-        #self.tree.setRootIsDecorated(False)
-        self.tree.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-        self.tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.tree.customContextMenuRequested.connect(self.openMenu)
-        self.tree.itemSelectionChanged.connect(self.changedSelection)
-        treeHdr = ( "Symbol", "Value", "Type", "Description")
-        self.tree.setColumnCount( len(treeHdr) )
-        self.tree.setHeaderLabels( treeHdr )
-
-
-
-        self.dataSetCombo = QtGui.QComboBox(self)
-        self.dataSetCombo.setMinimumWidth(150)
-
-        self.newDataSetBtn = QtGui.QPushButton('New...', self)
-        self.newDataSetBtn.clicked.connect(self.newDataSetForm)
-        self.newDataSetBtn.setFixedWidth(120)
-
-        groupBox = QtGui.QGroupBox("Data set")
-        hlayout = QtGui.QHBoxLayout(groupBox)
-
-        hlayout.addWidget(self.dataSetCombo)
-        hlayout.addWidget(self.newDataSetBtn)
-        self.layout.addWidget(groupBox)
-
-
-
-        self.layout.addWidget(self.tree)
-
-        self.setLayout(self.layout)
-
-        self._calItems = list()
-
-    def calItems(self):
-        return len(self._calItems)
-
-    def newDataSetForm(self):
-        print 'Save data etc'
-
-    def openMenu(self, position):
-        items = self.tree.selectedItems()
-
-        self.menu = QtGui.QMenu()
-        action = self.menu.addAction("Remove")
-        action.triggered.connect(lambda checked, items=items: self.removeSymbol(items))
-
-        if items:
-            #self.submenu_move = QtGui.QMenu("Move to")
-            #self.submenu_move.addAction("")
-            #self.menu.addMenu(self.submenu_move)
-            a = self.menu.exec_(self.tree.viewport().mapToGlobal(position))
-
-    def changedSelection(self):
-        pass
-
-    def removeSymbol(self, items):
-        root = self.tree.invisibleRootItem()
-        for item in items:
-            root.removeChild(item)
-            self._calItems.remove(item)
-
-    def addSymbol(self, symbol):
-        if symbol.name not in [str(item.text(0)) for item in self._calItems]:# and symbol.period_s>0.0:
-            calItem = CalTable_item(self, symbol)
-            self._calItems.append( calItem )
-
-
-# class ParametersWidget(QtGui.QWidget):
-
-#     def __init__(self, parent=None):
-#         super(ParametersWidget, self).__init__(parent)
-
-#         self.parent = parent
-#         self.initGui()
-        
-
-#     def initGui(self):
-
-#         layout = QtGui.QVBoxLayout(self)
-        
-#         self.treeWidget = QtGui.QTreeWidget(self)
-#         self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-#         self.treeWidget.customContextMenuRequested.connect(self.openMenu)
-
-#         HEADERS = ( "Symbol", "Value", "Type", "Description")
-#         self.treeWidget.setColumnCount( len(HEADERS) )
-#         self.treeWidget.setHeaderLabels( HEADERS )
-#         self.treeWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
-
-
-#             #item = self.addParamSymbol(s)
-
-
-#         self.dataSetCombo = QtGui.QComboBox(self)
-#         self.dataSetCombo.setMinimumWidth(150)
-
-#         self.newDataSetBtn = QtGui.QPushButton('New...', self)
-#         self.newDataSetBtn.clicked.connect(self.newDataSetForm)
-#         self.newDataSetBtn.setFixedWidth(120)
-#         layout.addWidget(self.newDataSetBtn)
-
-#         ## Context menu
-#         self.createContextMenu()
-
-#         #self.menu.addSeparator()
-#         groupBox = QtGui.QGroupBox("Data set")
-#         hlayout = QtGui.QHBoxLayout(groupBox)
-
-#         hlayout.addWidget(self.dataSetCombo)
-#         hlayout.addWidget(self.newDataSetBtn)
-#         layout.addWidget(groupBox)
-#         layout.addWidget(self.treeWidget)
-
-#         #layout.addSpacing(0)
-
-#         applyBtn = QtGui.QPushButton('Apply', self)
-#         applyBtn.clicked.connect(self.applyDataSet)
-#         applyBtn.setFixedWidth(100)
-#         layout.addWidget(applyBtn, alignment=QtCore.Qt.AlignRight)
-
-#         self.setLayout(layout)
-
-#     def applyDataSet(self):
-#         print 'Update parameters on target!'
-#         #comcmds.requestWrite(0x20000051, ctypes.c_uint32(0x11223344))
-
-
-
-#     def newDataSetForm(self):
-#         print 'Save data etc'
-
-#     def addParamSymbol(self, s):
-#         item = ParamTreeItem( self.treeWidget, s)
-#         for column in range( self.treeWidget.columnCount() ):
-#             self.treeWidget.resizeColumnToContents( column )
-#         return item
-
-#     def createContextMenu(self):
-#         self.menu = QtGui.QMenu()
-
-#     def openMenu(self, position):
-#         self.createContextMenu()
-
-#         items = self.treeWidget.selectedItems()
-
-#         self.submenu_add = QtGui.QMenu("Add to")
-#         self.submenu_add.addAction("")
-#         self.menu.addMenu(self.submenu_add)
-
-#         a = self.menu.exec_(self.treeWidget.viewport().mapToGlobal(position))
-
-
-# class ParamTreeItem( QtGui.QTreeWidgetItem ):
-
-#     def __init__( self, parent, symbol):
-
-#         super( ParamTreeItem, self ).__init__( parent )
-
-#         self.symbolName = symbol.name
-
-#         self.setText( 0, symbol.name )
-
-#         if symbol.dt.isEnum():
-#             self.valueCombo = QtGui.QComboBox()
-#             self.valueCombo.currentIndexChanged.connect(self.updatedValue)
-#             itemsStr = ["({0}) {1}".format(n,d) for n,d in symbol.dt.enumerations.iteritems()]
-#             self.valueCombo.addItems(itemsStr)
-#             self.treeWidget().setItemWidget( self, 1, self.valueCombo )
-#         else:
-#             #self.setText( 1, symbol.getValueStr() )
-#             self.valueEdit = QtGui.QLineEdit()
-#             self.valueEdit.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-#             self.valueEdit.setValidator(symbol.dt.getValidator())
-#             self.valueEdit.editingFinished.connect(self.updatedValue)
-#             self.treeWidget().setItemWidget( self, 1, self.valueEdit )
-
-        
-#         self.setTextAlignment( 1, QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-#         self.setText( 2, symbol.dt.text )
-#         self.setText( 3, symbol.desc )
-
-#     def updatedValue(self):
-#         print 'new val!'
 
 
 class MeasurementsWidget(QtGui.QWidget):
@@ -480,11 +270,7 @@ class MeasurementsWidget(QtGui.QWidget):
         self.value_timer.timeout.connect(self.updateValues)
 
         self._visualWidgets = list()
-        self._calWidgets = [parent.paramWidget]
-        
-        self._updateTimes = list()
-        self.tick = time()
-        self.sameVal = 0
+        self._calWidgets = list()
 
     def initGui(self):
 
@@ -512,19 +298,6 @@ class MeasurementsWidget(QtGui.QWidget):
             item.updateValue()
             iterator += 1
 
-        # self._updateTimes.append( time() - self.tick )
-
-        # if len(self._updateTimes)>=1000:
-        #     f = open('out_values.txt','w')
-        #     f.write(','.join(map(str, self._updateTimes)))
-        #     f.close()
-        #     print "printed update times"
-        #     self._updateTimes = list()
-        #     self.sameVal = 0
-
-        # self.tick = time()
-        
-
     def startValueUpdater(self):
         iterator = QtGui.QTreeWidgetItemIterator(self.treeWidget)
         while iterator.value():
@@ -535,8 +308,6 @@ class MeasurementsWidget(QtGui.QWidget):
         self.value_timer.start(50)
         for visual in self._visualWidgets:
             visual.startUpdater()
-
-        self.tick = time()
 
     def stopValueUpdater(self):
         iterator = QtGui.QTreeWidgetItemIterator(self.treeWidget)
@@ -583,16 +354,15 @@ class MeasurementsWidget(QtGui.QWidget):
 
     def createAddToMenu(self):
         self.submenu_add = QtGui.QMenu("Add to")
-        
-        #sa = self.submenu_add.addAction("New Calibration Table")
-        #sa.triggered.connect(self.createNewCalTable)
+
+        sa = self.submenu_add.addAction("New YT-plotter")
+        sa.triggered.connect(self.createNewYTplotter)
+        sa = self.submenu_add.addAction("New Calibration Table")
+        sa.triggered.connect(self.createNewCalTable)
 
         for cal in self._calWidgets:
             sa = self.submenu_add.addAction( cal.name )
             sa.triggered.connect(lambda checked, ct=cal: self.addSelectedToCalTable(ct))
-
-        sa = self.submenu_add.addAction("New YT-plotter")
-        sa.triggered.connect(self.createNewYTplotter)
 
         for visual in self._visualWidgets:
             sa = self.submenu_add.addAction( visual.name )
@@ -696,14 +466,6 @@ class YT_plotter(QtGui.QDialog):
 
         self._plotItems = list()
 
-        #self._plotTime = list()
-
-        #self.tick = time()
-
-        #w1 = self.view.addPlot(title="Plot 1")
-        #w1.setLabel('left', "Y Axis", units='A')
-        #w1.setLabel('bottom', "Time", units='s')
-
     def plotItems(self):
         return len(self._plotItems)
 
@@ -726,8 +488,6 @@ class YT_plotter(QtGui.QDialog):
         self.mainplot.setXRange(0, self._displayRange, padding=0)
 
         self.timer.start(interval)
-
-        #self.tick = time()
 
     def stopUpdater(self):
         self.timer.stop()
@@ -814,18 +574,6 @@ class YT_plotter(QtGui.QDialog):
 
         if tmax>=self._displayRange:
             self.mainplot.setXRange(tmax-self._displayRange, tmax, padding=0)
-
-        #     self._plotTime.append( time() - self.tick )
-
-        #     if len(self._plotTime)==1000:
-        #         f = open('out.txt','w')
-        #         f.write(','.join(map(str, self._plotTime)))
-        #         f.close()
-        #         print "printed plot times"
-        #         self._plotTime = list()
-
-        # self.tick = time()
-
 
     def closeEvent(self, event):
         self.timer.stop()
@@ -999,12 +747,6 @@ class MeasTreeItem( QtGui.QTreeWidgetItem ):
         else:
             self.periodCombo.setCurrentIndex(0)
 
-        # self.chBox = list()
-        # for i in range(0,4):
-        #     self.chBox.append(QtGui.QCheckBox())
-        #     self.chBox[i].stateChanged.connect(lambda checked,i=i: self.rasterCheckBox_cb(i, self.chBox[i]))
-        #     self.treeWidget().setItemWidget( self, 2+i, self.chBox[i] )
-
         self.setText( 4, symbol.desc )
 
         self.periodCombo.currentIndexChanged.connect(self.updatedPeriod)
@@ -1023,18 +765,6 @@ class MeasTreeItem( QtGui.QTreeWidgetItem ):
     def updateValue(self):
         sym = calmeas.workingSymbols[self.symbolName]
         self.setText( 1, sym.getValueStr() )
-
-
-    # def rasterCheckBox_cb(self, i, chBox):
-    #     #print checked
-    #     if chBox.isChecked():
-    #         for chb in range(0,4):
-    #             if chb != i:
-    #                 self.chBox[chb].setChecked(0)
-
-            #print self.symbol.name + ' ' + str(i)
-            #print self.data(0, QtCore.Qt.UserRole).toPyObject()
-            #self.parent().chBox[i].setChecked(1)
 
 
 class CalMeas_UI(QtGui.QMainWindow):
