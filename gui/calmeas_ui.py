@@ -438,6 +438,9 @@ class ParametersWidget(QtGui.QWidget):
             for sym, val in calmeas.getParamSet(pset).iteritems():
                 item = symTreeItem(self.symTree, calmeas.workingSymbols[sym], val)
 
+            for column in range( self.symTree.columnCount() ):
+                self.symTree.resizeColumnToContents( column )
+
     def addParam(self, symbols):
         # Will always be added to the working/target set
         if calmeas.workingParamSet=='':
@@ -902,6 +905,9 @@ class CalibrationTable(QtGui.QDialog):
                 pass
             else:
                 self._calItems.append( calItem )
+                for column in range( self.tree.columnCount() ):
+                    self.tree.resizeColumnToContents( column )
+
                 return True
 
         return False
@@ -954,7 +960,8 @@ class CalTable_item( QtGui.QTreeWidgetItem ):
 
     def updatedValue(self):
         if self._isEdited:
-            calmeas.tuneTargetParameter(str(self.text(0)), str(self.valueEdit.text()))
+            val = str(self.valueEdit.text())
+            calmeas.tuneTargetParameter(str(self.text(0)), val.replace(",","."))
             self.paramSetUpdated.emit()
             self._isEdited = False
 
