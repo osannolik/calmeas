@@ -5,6 +5,7 @@ from comframe import ComFrame
 import numpy as np
 import ctypes
 import Queue
+import copy
 
 import logging
 logging.basicConfig(level=logging.DEBUG, datefmt='%H:%M:%S', 
@@ -20,6 +21,9 @@ CALMEAS_ID_RASTER_SET = 4
 CALMEAS_ID_SYMBOL_NAME = 5
 CALMEAS_ID_SYMBOL_DESC = 6
 CALMEAS_ID_RASTER_PERIODS = 7
+
+SET_COPIED_KEY = 'copy from'
+SET_DATA_KEY = 'data'
 
 class SymbolDataType():
     def __init__(self, basetype=np.uint8):
@@ -59,7 +63,10 @@ class SymbolDataType():
             if self.isFloating():
                 return '{:.6f}'.format(value)
             else:
-                return str(value)
+                try:
+                    return str(value[0])
+                except:
+                    return str(value)
 
 class Symbol():
     def __init__(self, name=""):
@@ -99,8 +106,11 @@ class Symbol():
 
         self.initDataBuffer()
 
-    def getValueStr(self):
-        return self._datatype.basetypeToStr(self.getValueRaw())
+    def getValueStr(self, raw=None):
+        if raw is None:
+            return self._datatype.basetypeToStr(self.getValueRaw())
+        else:
+            return self._datatype.basetypeToStr(raw)
 
     def getValueRaw(self):
         if len(self.data)>0:
@@ -158,6 +168,10 @@ class CalMeas():
         self.targetSymbols = dict()
         self.workingSymbols = dict()
 
+        
+        self.paramSet = dict()
+        self.workingParamSet = ''
+
         self._nbrOfRasters = 3
 
         self._streamDataStructure = list()
@@ -168,6 +182,73 @@ class CalMeas():
         for r in range(self._nbrOfRasters):
             self.raster.append(list())
             self.rasterDataStructures.append(list())
+
+
+
+    def importParamSet(self, name, setData):
+        # Todo: Check that all symbols exist etc...
+        self.paramSet[name] = copy.deepcopy(setData)
+
+    def newParamSet(self, name, fromSet=''):
+        fromSet = str(fromSet)
+        if self.paramSet:
+            # Make a copy
+            if fromSet in self.paramSet.keys():
+                pset = copy.deepcopy(self.paramSet[fromSet])
+            else:
+                raise Exception('Not an existing data set "{}"'.format(fromSet))
+        else:
+            pset = dict()
+            pset[SET_DATA_KEY] = dict()
+
+        pset[SET_COPIED_KEY] = fromSet
+        self.paramSet[str(name)] = pset
+
+    def deleteParamSet(self, name):
+        if name!=self.workingParamSet and name in self.paramSet.keys():
+            del self.paramSet[name]
+        else:
+            raise Exception('Cannot remove data set "{}"'.format(name))
+
+    def getParamSet(self, name):
+        return dict(self.paramSet[str(name)][SET_DATA_KEY])
+
+    def useParamSet(self, useSet):
+        useSet = str(useSet)
+        if useSet in self.paramSet.keys():
+            self.workingParamSet = str(useSet)
+
+            for symbolName, data in self.paramSet[useSet][SET_DATA_KEY].iteritems():
+                self.tuneTargetParameter(symbolName, data)
+
+        else:
+            raise Exception('Not an existing data set "{}"'.format(useSet))
+
+    def addParam(self, symbolName, toSet=''):
+        toSet = str(toSet)
+        if toSet=='': 
+            toSet = self.workingParamSet
+
+        if toSet in self.paramSet.keys():
+            val = self.getSymbolTargetValue(symbolName)
+            self.paramSet[toSet][SET_DATA_KEY][symbolName] = val[0]
+        else:
+            raise Exception('Not an existing data set "{}"'.format(toSet))
+
+    def getSymbolTargetValue(self, symbolName):
+        if symbolName in self.workingSymbols.keys():
+            symbolAddress = self.workingSymbols[symbolName].address
+            symbolType = self.workingSymbols[symbolName].datatype
+            tc = self.getTypeCode( symbolType.np_basetype )
+            c_type = self.getBaseType(tc)[0]
+
+            self.comcmds.requestRead(symbolAddress, [c_type])
+            (addr, data) = self.comcmds.pollReadData(timeout=1)
+
+            return data
+
+        else:
+            return None
 
     def tuneTargetParameter(self, symbolName, value):
         if symbolName in self.workingSymbols.keys():
@@ -182,6 +263,13 @@ class CalMeas():
                 setValue = float(value)
 
             self.comcmds.requestWrite(symbolAddress, c_type(setValue))
+
+            # Todo, handle ack
+
+            if self.workingParamSet!='':
+                self.paramSet[self.workingParamSet][SET_DATA_KEY][symbolName] = setValue
+
+
 
     def startMeasurements(self):
         for r,p in enumerate(self.rasterPeriods):

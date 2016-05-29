@@ -6,6 +6,7 @@ logging.basicConfig(level=logging.DEBUG, datefmt='%H:%M:%S',
 import sys
 #from PyQt4 import QtCore, QtGui
 import numpy as np
+import json
 
 #sys.path.insert(0, '../cobsser/')
 from cobsser import CobsSer
@@ -23,6 +24,7 @@ pg.setConfigOption('background', 'w')
 cobsser = CobsSer()
 comhandler = ComHandlerThread()
 calmeas = CalMeas(comhandler)
+
 
 class LongValidator(QtGui.QValidator):
     def __init__(self, minval=0, maxval=0, parent=None):
@@ -241,15 +243,27 @@ class SymbolListWidget(QtGui.QTabWidget):
         super(SymbolListWidget, self).__init__(parent)
 
         self.tab_meas = QtGui.QWidget()
+        self.tab_param = QtGui.QWidget()
 
         self.addTab(self.tab_meas, "Symbols")
+        self.addTab(self.tab_param, "Parameter Sets")
 
         layout_meas = QtGui.QVBoxLayout()
+        layout_param = QtGui.QVBoxLayout()
 
         self.measWidget = MeasurementsWidget(self)
         layout_meas.addWidget(self.measWidget)
 
+        self.paramWidget = ParametersWidget(self)
+        layout_param.addWidget(self.paramWidget)
+
         self.tab_meas.setLayout(layout_meas)
+        self.tab_param.setLayout(layout_param)
+
+        self.measWidget.paramSetUpdated.connect(self.paramWidget.updateSymTree)
+        self.measWidget.paramAdd.connect(self.paramWidget.addParam)
+        self.paramWidget.paramSetSetted.connect(self.measWidget.updateCalTables)
+
 
     def addSymbols(self, symbols):
         self.measWidget.addMeasureSymbols(symbols)
@@ -258,9 +272,264 @@ class SymbolListWidget(QtGui.QTabWidget):
         self.measWidget.treeWidget.clear()
         self.addSymbols(symbols)
 
+class ParametersWidget(QtGui.QWidget):
+
+    paramSetSetted = QtCore.pyqtSignal(list)
+
+    def __init__(self, parent=None):
+        super(ParametersWidget, self).__init__(parent)
+
+        self.parent = parent
+        self.initGui()
+        
+    def initGui(self):
+        layout = QtGui.QVBoxLayout(self)
+
+        self.splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
+
+        # self.dataSetCombo = QtGui.QComboBox(self)
+        # self.dataSetCombo.currentIndexChanged.connect(self.selectedSetChanged)
+        # self.dataSetCombo.setMinimumWidth(150)
+
+        self.dataSetList = QtGui.QListWidget(self)
+        self.dataSetList.itemClicked.connect(self.selectedSetChanged)
+        self.dataSetList.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.dataSetList.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.dataSetList.customContextMenuRequested.connect(self.openSetMenu)
+        #self.dataSetCombo.itemChanged.connect(self.setChecked)
+        self.dataSetList.setMinimumWidth(150)
+        
+        self.symTree = QtGui.QTreeWidget(self)
+        #self.symTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        #self.symTree.customContextMenuRequested.connect(self.openMenu)
+
+        HEADERS = ( "Symbol", "Value" )
+        self.symTree.setColumnCount( len(HEADERS) )
+        self.symTree.setHeaderLabels( HEADERS )
+        self.symTree.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+
+        # BTN_WIDTH_PX = 105
+        # self.newDataSetBtn = QtGui.QPushButton('Duplicate', self)
+        # self.newDataSetBtn.clicked.connect(self.newDataSet)
+        # self.newDataSetBtn.setFixedWidth(BTN_WIDTH_PX)
+        # self.delDataSetBtn = QtGui.QPushButton('Delete', self)
+        # self.delDataSetBtn.clicked.connect(self.delDataSet)
+        # self.delDataSetBtn.setFixedWidth(BTN_WIDTH_PX)
+        # self.impDataSetBtn = QtGui.QPushButton('Import...', self)
+        # self.impDataSetBtn.clicked.connect(self.impDataSet)
+        # self.impDataSetBtn.setFixedWidth(BTN_WIDTH_PX)
+        # self.expDataSetBtn = QtGui.QPushButton('Export...', self)
+        # self.expDataSetBtn.clicked.connect(self.expDataSet)
+        # self.expDataSetBtn.setFixedWidth(BTN_WIDTH_PX)
+        # self.applyBtn = QtGui.QPushButton('Apply', self)
+        # self.applyBtn.clicked.connect(self.applyDataSet)
+        # self.applyBtn.setFixedWidth(BTN_WIDTH_PX)
+        
+        # self.newDataSetBtn.setEnabled(False)
+        # self.delDataSetBtn.setEnabled(False)
+        # self.impDataSetBtn.setEnabled(False)
+        # self.expDataSetBtn.setEnabled(False)
+        # self.applyBtn.setEnabled(False)
+
+        ## Context menu
+        #self.createContextMenu()
+
+        groupBox = QtGui.QGroupBox("Data set")
+        vlayout = QtGui.QVBoxLayout(groupBox)
+
+        vlayout.addWidget(self.dataSetList)
+
+        # hlayout = QtGui.QHBoxLayout()
+        # hlayout.addWidget(self.newDataSetBtn)
+        # hlayout.addWidget(self.delDataSetBtn)
+        # hlayout.addWidget(self.impDataSetBtn)
+        # hlayout.addWidget(self.expDataSetBtn)
+        # hlayout.addStretch()
+        # hlayout.addWidget(self.applyBtn, alignment=QtCore.Qt.AlignRight)
+
+        # vlayout.addLayout(hlayout)
+        
+        #self.splitter.addWidget(groupBox)
+        self.splitter.addWidget(self.dataSetList)
+        self.splitter.addWidget(self.symTree)
+        self.splitter.setCollapsible(0,False)
+        self.splitter.setCollapsible(1,False)
+
+        layout.addWidget(self.splitter)
+
+        #layout.addWidget(groupBox)
+        #layout.addWidget(self.symTree)
+
+        self.setLayout(layout)
+
+        self.setIcon = QtGui.QIcon('icons/dset_icon.png')
+        self.usedSetIcon = QtGui.QIcon('icons/dset_used_icon.png')
+
+        self.impExpDialog = QtGui.QFileDialog()
+        self.impExpDialog.setFilter(self.impExpDialog.filter() | QtCore.QDir.Hidden)
+        self.impExpDialog.setDefaultSuffix('json')
+        self.impExpDialog.setNameFilters(['JSON (*.json)'])
+
+    def openSetMenu(self, position):
+        selItems = self.dataSetList.selectedItems()
+
+        menu = QtGui.QMenu()     
+            
+        if len(selItems)==1:        
+            sa = menu.addAction("Apply")
+            sa.triggered.connect(self.applyDataSet)
+            sa = menu.addAction("Duplicate...")
+            sa.triggered.connect(self.newDataSet)
+            menu.addSeparator()
+
+        if len(selItems)>=1:
+            sa = menu.addAction("Delete")
+            sa.triggered.connect(self.delDataSet)
+            sa = menu.addAction("Export...")
+            sa.triggered.connect(self.expDataSet)
+            menu.addSeparator()
+        
+        sa = menu.addAction("Import...")
+        sa.triggered.connect(self.impDataSet)
+        a = menu.exec_(self.dataSetList.viewport().mapToGlobal(position))
+
+    def applyDataSet(self):
+        selItem = self.dataSetList.currentItem()
+        useSet = selItem.text()
+        if useSet:
+            calmeas.useParamSet(useSet)
+            for i in range(self.dataSetList.count()):
+                uncheck_item = self.dataSetList.item(i)
+                uncheck_item.setIcon(self.setIcon)
+
+            selItem.setIcon(self.usedSetIcon)
+            self.updateCalTables(useSet)
+
+    def updateCalTables(self, paramSet):
+        updateVals = list()
+        for sym, val in calmeas.getParamSet(paramSet).iteritems():
+            symbol = calmeas.workingSymbols[sym]
+            updateVals.append((sym, symbol.getValueStr(val)))
+
+        self.paramSetSetted.emit(updateVals)
+
+    def delDataSet(self):
+        for selItem in self.dataSetList.selectedItems():
+            try:
+                calmeas.deleteParamSet(str(selItem.text()))
+            except:
+                pass
+            else:
+                self.dataSetList.takeItem(self.dataSetList.row(selItem))
+
+    def impDataSet(self):
+        self.impExpDialog.setAcceptMode(QtGui.QFileDialog.AcceptOpen)
+
+        if self.impExpDialog.exec_() == QtGui.QDialog.Accepted:
+            fname = str(self.impExpDialog.selectedFiles()[0])
+            
+            with open(fname) as f:
+                data = json.load(f)
+
+                for setName, setData in data.iteritems():
+                    calmeas.importParamSet(setName, setData)
+                    self.dataSetList.addItem(setName)
+                    newItem = self.dataSetList.item(self.dataSetList.count() - 1)
+                    newItem.setIcon(self.setIcon)
+
+    def expDataSet(self):
+        selItems = self.dataSetList.selectedItems()
+
+        seldSets = dict()
+        for itm in selItems:
+            setName = str(itm.text())
+            seldSets[setName] = calmeas.paramSet[setName]
+
+        self.impExpDialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
+
+        if self.impExpDialog.exec_() == QtGui.QDialog.Accepted:
+            fname = str(self.impExpDialog.selectedFiles()[0])
+            with open(fname, 'w') as f:
+                json.dump(seldSets, f, indent=4, sort_keys=True)
+
+    def newDataSet(self):
+        selectedSet = self.dataSetList.currentItem()
+        if selectedSet is None:
+            selectedSet = ''
+        else:
+            selectedSet = str(selectedSet.text())
+
+        newSetName = ''
+        while not newSetName:
+            newSetName, OK = QtGui.QInputDialog.getText(self, 'New Data Set', 'Please provide a name:', text=selectedSet)
+
+        if OK:
+            calmeas.newParamSet(str(newSetName), fromSet = selectedSet)
+            self.dataSetList.addItem(newSetName)
+            newItem = self.dataSetList.item(self.dataSetList.count() - 1)
+            #newItem.setCheckState(0)
+            newItem.setIcon(self.setIcon)
+            #self.dataSetList.setItemSelected(newItem, True)
+            #self.dataSetList.setCurrentItem(newItem)
+
+            # self.newDataSetBtn.setEnabled(True)
+            # self.delDataSetBtn.setEnabled(True)
+            # self.impDataSetBtn.setEnabled(True)
+            # self.expDataSetBtn.setEnabled(True)
+            # self.applyBtn.setEnabled(True)
+
+            return newItem
+
+        else:
+            return None
+
+    def selectedSetChanged(self, item):
+        self.updateSymTree()
+
+    def updateSymTree(self, pset=''):
+        if pset=='':
+            selItem = self.dataSetList.currentItem()
+            if selItem is not None:
+                pset = str(selItem.text())
+
+        self.symTree.clear()
+
+        if pset!='':
+            for sym, val in calmeas.getParamSet(pset).iteritems():
+                item = symTreeItem(self.symTree, calmeas.workingSymbols[sym], val)
+
+    def addParam(self, symbols):
+        # Will always be added to the working/target set
+        if calmeas.workingParamSet=='':
+            newItem = self.newDataSet()
+            if newItem is not None:
+                #newItem.setCheckState(2)
+                newItem.setIcon(self.usedSetIcon)
+                #self.dataSetList.setItemSelected(newItem, True)
+                self.dataSetList.setCurrentItem(newItem)
+                newSetName = newItem.text()
+                calmeas.useParamSet(newSetName)
+
+        for s in symbols:
+            calmeas.addParam(s.name)
+
+        #self.updateCalTables(calmeas.workingParamSet)
+
+class symTreeItem( QtGui.QTreeWidgetItem ):
+
+    def __init__( self, parent, symbol, val):
+
+        super( symTreeItem, self ).__init__( parent )
+
+        self.setText( 0, symbol.name )
+
+        self.setText( 1, symbol.getValueStr(val) )
 
 class MeasurementsWidget(QtGui.QWidget):
     
+    paramAdd = QtCore.pyqtSignal(list)
+    paramSetUpdated = QtCore.pyqtSignal()
+
     def __init__(self, parent=None):
         super(MeasurementsWidget, self).__init__(parent)
 
@@ -378,7 +647,10 @@ class MeasurementsWidget(QtGui.QWidget):
     def addSelectedToCalTable(self, ct):
         for item in self.treeWidget.selectedItems():
             s = calmeas.workingSymbols[item.symbolName]
-            ct.addSymbol(s)
+            if ct.addSymbol(s):
+                self.paramAdd.emit([s])
+
+        self.paramSetUpdated.emit()
 
     def createNewYTplotter(self):
         yt = YT_plotter(self, name=str(len(self._visualWidgets)))
@@ -400,6 +672,10 @@ class MeasurementsWidget(QtGui.QWidget):
         if ct.calItems()>0:
             self._calWidgets.append(ct)
             ct.show()
+
+    def updateCalTables(self, newVals):
+        for ct in self._calWidgets:
+            ct.updateValues(newVals)
 
     def moveToPeriod(self, checked, period):
         for item in self.treeWidget.selectedItems():
@@ -630,6 +906,9 @@ class CalibrationTable(QtGui.QDialog):
     
     def __init__(self, parent=None, name=''):
         super(CalibrationTable, self).__init__(parent)
+
+        self.paramSetUpdated = parent.paramSetUpdated
+
         self.name = 'Calibration Table [{}]'.format(name)
         self.setWindowTitle(self.name)
 
@@ -676,18 +955,38 @@ class CalibrationTable(QtGui.QDialog):
     def removeSymbol(self, items):
         root = self.tree.invisibleRootItem()
         for item in items:
+            self._calItems.remove(item)
             root.removeChild(item)
 
     def addSymbol(self, symbol):
-        if symbol.name not in [str(item.text(1)) for item in self._calItems]:# and symbol.period_s>0.0:
-            calItem = CalTable_item(self, symbol)
-            self._calItems.append( calItem )
+        if symbol.name not in [str(item.text(0)) for item in self._calItems]:
+            try:
+                calItem = CalTable_item(self, symbol)
+            except Exception, e:
+                pass
+            else:
+                self._calItems.append( calItem )
+                return True
+
+        return False
+
+    def updateValues(self, newVals):
+        symNames, values = zip(*newVals)
+        for calItem in self._calItems:
+            try:
+                idx = symNames.index(str(calItem.text(0)))
+            except:
+                pass
+            else:
+                calItem.setValue( values[idx] )
 
 class CalTable_item( QtGui.QTreeWidgetItem ):
 
     def __init__( self, calTable, symbol ):
 
         super( CalTable_item, self ).__init__( calTable.tree )
+
+        self.paramSetUpdated = calTable.paramSetUpdated
 
         self.setText( 0, symbol.name )
 
@@ -720,7 +1019,11 @@ class CalTable_item( QtGui.QTreeWidgetItem ):
     def updatedValue(self):
         if self._isEdited:
             calmeas.tuneTargetParameter(str(self.text(0)), str(self.valueEdit.text()))
+            self.paramSetUpdated.emit()
             self._isEdited = False
+
+    def setValue(self, value):
+        self.valueEdit.setText( str(value) )
 
 
 class MeasTreeItem( QtGui.QTreeWidgetItem ):
@@ -802,6 +1105,7 @@ class CalMeas_UI(QtGui.QMainWindow):
         self.controlWidget.initSuccessful.connect(self.symbolWidget.updateWorkingSymbols)
         self.controlWidget.measurementStarted.connect(self.symbolWidget.measWidget.startValueUpdater)
         self.controlWidget.measurementStopped.connect(self.symbolWidget.measWidget.stopValueUpdater)
+
 
 
 def open_app():

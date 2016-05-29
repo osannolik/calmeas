@@ -68,7 +68,7 @@ class ComCommands():
         try:
             d = self._readResponseFifo.get(block, timeout)
         except Queue.Empty:
-            return []
+            return (None, None)
         else:
             return d
 
@@ -89,12 +89,14 @@ class ComCommands():
             address = request[0]
             data = f.getData(request[1])
 
-            print '0x{:x}'.format(data[0].value)
+            dataValues = list()
+            for d in data:
+                dataValues.append(d.value)
 
-            self._readResponseFifo.put([address, data])
+            self._readResponseFifo.put((address, dataValues))
 
             if request[2] is not None:
-                request[2]([address, data])
+                request[2]((address, dataValues))
         
     def setComHandler(self, comhandler):
         self._comhandler = comhandler
