@@ -287,17 +287,12 @@ class ParametersWidget(QtGui.QWidget):
 
         self.splitter = QtGui.QSplitter(QtCore.Qt.Vertical)
 
-        # self.dataSetCombo = QtGui.QComboBox(self)
-        # self.dataSetCombo.currentIndexChanged.connect(self.selectedSetChanged)
-        # self.dataSetCombo.setMinimumWidth(150)
-
         self.dataSetList = QtGui.QListWidget(self)
         self.dataSetList.itemClicked.connect(self.selectedSetChanged)
+        self.dataSetList.itemPressed.connect(self.selectedSetChanged)
         self.dataSetList.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.dataSetList.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.dataSetList.customContextMenuRequested.connect(self.openSetMenu)
-        #self.dataSetCombo.itemChanged.connect(self.setChecked)
-        self.dataSetList.setMinimumWidth(150)
         
         self.symTree = QtGui.QTreeWidget(self)
         #self.symTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -308,57 +303,12 @@ class ParametersWidget(QtGui.QWidget):
         self.symTree.setHeaderLabels( HEADERS )
         self.symTree.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
 
-        # BTN_WIDTH_PX = 105
-        # self.newDataSetBtn = QtGui.QPushButton('Duplicate', self)
-        # self.newDataSetBtn.clicked.connect(self.newDataSet)
-        # self.newDataSetBtn.setFixedWidth(BTN_WIDTH_PX)
-        # self.delDataSetBtn = QtGui.QPushButton('Delete', self)
-        # self.delDataSetBtn.clicked.connect(self.delDataSet)
-        # self.delDataSetBtn.setFixedWidth(BTN_WIDTH_PX)
-        # self.impDataSetBtn = QtGui.QPushButton('Import...', self)
-        # self.impDataSetBtn.clicked.connect(self.impDataSet)
-        # self.impDataSetBtn.setFixedWidth(BTN_WIDTH_PX)
-        # self.expDataSetBtn = QtGui.QPushButton('Export...', self)
-        # self.expDataSetBtn.clicked.connect(self.expDataSet)
-        # self.expDataSetBtn.setFixedWidth(BTN_WIDTH_PX)
-        # self.applyBtn = QtGui.QPushButton('Apply', self)
-        # self.applyBtn.clicked.connect(self.applyDataSet)
-        # self.applyBtn.setFixedWidth(BTN_WIDTH_PX)
-        
-        # self.newDataSetBtn.setEnabled(False)
-        # self.delDataSetBtn.setEnabled(False)
-        # self.impDataSetBtn.setEnabled(False)
-        # self.expDataSetBtn.setEnabled(False)
-        # self.applyBtn.setEnabled(False)
-
-        ## Context menu
-        #self.createContextMenu()
-
-        groupBox = QtGui.QGroupBox("Data set")
-        vlayout = QtGui.QVBoxLayout(groupBox)
-
-        vlayout.addWidget(self.dataSetList)
-
-        # hlayout = QtGui.QHBoxLayout()
-        # hlayout.addWidget(self.newDataSetBtn)
-        # hlayout.addWidget(self.delDataSetBtn)
-        # hlayout.addWidget(self.impDataSetBtn)
-        # hlayout.addWidget(self.expDataSetBtn)
-        # hlayout.addStretch()
-        # hlayout.addWidget(self.applyBtn, alignment=QtCore.Qt.AlignRight)
-
-        # vlayout.addLayout(hlayout)
-        
-        #self.splitter.addWidget(groupBox)
         self.splitter.addWidget(self.dataSetList)
         self.splitter.addWidget(self.symTree)
         self.splitter.setCollapsible(0,False)
         self.splitter.setCollapsible(1,False)
 
         layout.addWidget(self.splitter)
-
-        #layout.addWidget(groupBox)
-        #layout.addWidget(self.symTree)
 
         self.setLayout(layout)
 
@@ -467,17 +417,7 @@ class ParametersWidget(QtGui.QWidget):
             calmeas.newParamSet(str(newSetName), fromSet = selectedSet)
             self.dataSetList.addItem(newSetName)
             newItem = self.dataSetList.item(self.dataSetList.count() - 1)
-            #newItem.setCheckState(0)
             newItem.setIcon(self.setIcon)
-            #self.dataSetList.setItemSelected(newItem, True)
-            #self.dataSetList.setCurrentItem(newItem)
-
-            # self.newDataSetBtn.setEnabled(True)
-            # self.delDataSetBtn.setEnabled(True)
-            # self.impDataSetBtn.setEnabled(True)
-            # self.expDataSetBtn.setEnabled(True)
-            # self.applyBtn.setEnabled(True)
-
             return newItem
 
         else:
@@ -503,17 +443,13 @@ class ParametersWidget(QtGui.QWidget):
         if calmeas.workingParamSet=='':
             newItem = self.newDataSet()
             if newItem is not None:
-                #newItem.setCheckState(2)
                 newItem.setIcon(self.usedSetIcon)
-                #self.dataSetList.setItemSelected(newItem, True)
                 self.dataSetList.setCurrentItem(newItem)
                 newSetName = newItem.text()
                 calmeas.useParamSet(newSetName)
 
         for s in symbols:
             calmeas.addParam(s.name)
-
-        #self.updateCalTables(calmeas.workingParamSet)
 
 class symTreeItem( QtGui.QTreeWidgetItem ):
 
