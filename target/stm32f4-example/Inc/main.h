@@ -45,10 +45,14 @@
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
-#define LED_PIN      GPIO_PIN_14
-#define LED_PORT     GPIOD
-#define LED_SET      (LED_PORT->BSRR = LED_PIN)
-#define LED_RESET    (LED_PORT->BSRR = (LED_PIN<<16))
+#define RED_LED_PIN      GPIO_PIN_14
+#define RED_LED_PORT     GPIOD
+#define RED_LED_SET      (RED_LED_PORT->BSRR = RED_LED_PIN)
+#define RED_LED_RESET    (RED_LED_PORT->BSRR = (RED_LED_PIN<<16))
+#define GREEN_LED_PIN    GPIO_PIN_12
+#define GREEN_LED_PORT   GPIOD
+#define GREEN_LED_SET    (GREEN_LED_PORT->BSRR = GREEN_LED_PIN)
+#define GREEN_LED_RESET  (GREEN_LED_PORT->BSRR = (GREEN_LED_PIN<<16))
 
 /* Exported functions ------------------------------------------------------- */
 

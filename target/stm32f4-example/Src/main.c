@@ -10,11 +10,14 @@
 #include "calmeas.h"
 
 // These five symbols will all be available for measurement and tuning
-CALMEAS_SYMBOL(float, phase_a, 0.0, "Phase A current");
-CALMEAS_SYMBOL(float, phase_b, 0.0, "Phase B current");
-CALMEAS_SYMBOL(float, phase_c, 0.0, "Phase C current");
-CALMEAS_SYMBOL(uint8_t, set_led, 0, "Set debug LED on/off");
-CALMEAS_SYMBOL(uint8_t, led_sts, 0, "Debug LED status");
+CALMEAS_SYMBOL(float,    phase_a,          0.0,  "Phase A current");
+CALMEAS_SYMBOL(float,    phase_b,          0.0,  "Phase B current");
+CALMEAS_SYMBOL(float,    phase_c,          0.0,  "Phase C current");
+CALMEAS_SYMBOL(uint8_t,  red_led_sts,      0,    "Red LED status");
+CALMEAS_SYMBOL(uint8_t,  red_led_set,      0,    "Set red LED on/off");
+CALMEAS_SYMBOL(uint8_t,  green_led_set,    0,    "Set green LED on/off");
+CALMEAS_SYMBOL(float,    green_led_period, 0.2,  "Period of green led blinking [s]");
+CALMEAS_SYMBOL(float,    phase_a_amp,      10.0, "Amplitude of Phase A");
 
 static void SystemClock_Config(void);
 static void Error_Handler(void);
@@ -70,19 +73,34 @@ int main(void)
 void your_fantastic_application(void)
 {
   static float t = 0;
+  static float ticker = 0;
+  static uint8_t toggle = 0;
 
-  if (set_led) {
-    LED_SET;
+  if (red_led_set) {
+    RED_LED_SET;
   } else {
-    LED_RESET;
+    RED_LED_RESET;
+  }
+  red_led_sts = red_led_set;
+
+  if (green_led_set) {
+    GREEN_LED_SET;
+  } else {
+    if (ticker >= green_led_period/2.0) {
+      ticker = 0;
+      if (toggle ^= 1)
+        GREEN_LED_SET;
+      else
+        GREEN_LED_RESET;
+    }
   }
 
-  led_sts = set_led;
-
-  t = t + 0.001;
-  phase_a = 10 * cosf(6.28*1*t);
+  phase_a = phase_a_amp * cosf(6.28*1*t);
   phase_b = 10 * cosf(6.28*1*t - 6.28/3);
   phase_c = 10 * cosf(6.28*1*t + 6.28/3);
+
+  ticker += 0.001;
+  t += 0.001;
 }
 
 void led_init(void)
@@ -94,9 +112,9 @@ void led_init(void)
   GPIOinitstruct.Speed = GPIO_SPEED_HIGH;
   GPIOinitstruct.Pull = GPIO_NOPULL;
   GPIOinitstruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIOinitstruct.Pin = LED_PIN;
+  GPIOinitstruct.Pin = RED_LED_PIN | GREEN_LED_PIN;
 
-  HAL_GPIO_Init(LED_PORT, &GPIOinitstruct);
+  HAL_GPIO_Init(RED_LED_PORT, &GPIOinitstruct);
 }
 
 /**
