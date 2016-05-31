@@ -946,7 +946,7 @@ class CalTable_item( QtGui.QTreeWidgetItem ):
             self.valueEdit.textEdited.connect(self.editedValue)
             self.valueEdit.editingFinished.connect(self.updatedValue)
             self.treeWidget().setItemWidget( self, 1, self.valueEdit )
-        
+
         self.setTextAlignment( 1, QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.setText( 2, symbol.datatype.text )
         self.setText( 3, symbol.desc )
@@ -961,7 +961,7 @@ class CalTable_item( QtGui.QTreeWidgetItem ):
     def updatedValue(self):
         if self._isEdited:
             val = str(self.valueEdit.text())
-            calmeas.tuneTargetParameter(str(self.text(0)), val.replace(",","."))
+            calmeas.tuneTargetParameter(str(self.text(0)), val.replace(',','.'))
             self.paramSetUpdated.emit()
             self._isEdited = False
 
@@ -1052,7 +1052,12 @@ class CalMeas_UI(QtGui.QMainWindow):
 
 
 def open_app():
+
+
     app = QtGui.QApplication(sys.argv)
+
+    QtCore.QLocale.setDefault( QtCore.QLocale('en_US') )
+
     app.aboutToQuit.connect(on_exit)
 
     comhandler.setByteQueue_Rx(cobsser.Rx_fifo)

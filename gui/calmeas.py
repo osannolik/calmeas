@@ -257,10 +257,13 @@ class CalMeas():
             tc = self.getTypeCode( symbolType.np_basetype )
             c_type = self.getBaseType(tc)[0]
 
-            try:
-                setValue = int(value)
-            except ValueError:
-                setValue = float(value)
+            if isinstance(value, str):
+                try:
+                    setValue = int(value)
+                except ValueError:
+                    setValue = float(value)
+            else:
+                setValue = value
 
             self.comcmds.requestWrite(symbolAddress, c_type(setValue))
 
