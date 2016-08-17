@@ -407,7 +407,7 @@ class SynchManager(QtGui.QWidget):
             sa = menu.addAction("Remove")
             sa.triggered.connect(lambda checked, ds=dataSet, sn=selectedSymbolNames: self._removeSymbolsFromSet(ds, sn))
 
-            a = menu.exec_(self.symTree.viewport().mapToGlobal(position))    
+            a = menu.exec_(self.symTree.viewport().mapToGlobal(position))
 
     def _addSymbolToSet(self, dataSet):
         symbols = [(symbol.name, False) for symbol in self._calmeas.workingSymbols.values()]
@@ -451,6 +451,9 @@ class NewDataset_diag(QtGui.QDialog):
         layout.addWidget(QtGui.QLabel(self.SYMBOLS_TEXT, self))
 
         self.list = QtGui.QListWidget(self)
+        self.list.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.list.customContextMenuRequested.connect(self._openSelectMenu)
         layout.addWidget(self.list)
 
         buttonBox = QtGui.QDialogButtonBox()
@@ -473,9 +476,29 @@ class NewDataset_diag(QtGui.QDialog):
             else:
                 item.setCheckState(QtCore.Qt.Unchecked)
 
+    def _openSelectMenu(self, position):
+        selItems = self.list.selectedItems()
+        menu = QtGui.QMenu()     
+        sa = menu.addAction("(De)select")
+        sa.triggered.connect(lambda checked, items=selItems: self._checkSelected(items))
+        sa = menu.addAction("Select all")
+        sa.triggered.connect(self._selectAll)
+        a = menu.exec_(self.list.viewport().mapToGlobal(position))
+
+    def _checkSelected(self, items):
+        for item in items:
+            if item.checkState()==QtCore.Qt.Checked:
+                item.setCheckState(QtCore.Qt.Unchecked)
+            else:
+                item.setCheckState(QtCore.Qt.Checked)
+
+    def _selectAll(self):
+        for index in xrange(self.list.count()):
+            item = self.list.item(index)
+            item.setCheckState(QtCore.Qt.Checked)
+
     def _ok(self):
         self.selectedSymbols = []
-        model = self.list.model()
         for index in xrange(self.list.count()):
             item = self.list.item(index)
             self.selectedSymbols.append( (str(item.text()), item.checkState()==QtCore.Qt.Checked) )
