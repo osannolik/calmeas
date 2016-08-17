@@ -84,6 +84,9 @@ class MeasController(QtGui.QWidget):
 
         newWidget.show()
 
+        if self._calmeas.isStarted:
+            newWidget.start()
+
         return newWidget
 
     def deleteVisualWidget(self, vw):
