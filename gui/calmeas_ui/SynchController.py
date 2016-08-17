@@ -164,7 +164,7 @@ class SynchManager(QtGui.QWidget):
         self.dataSetList = QtGui.QListWidget(self)
         self.dataSetList.itemSelectionChanged.connect(self.setSelected)
         self.dataSetList.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.dataSetList.customContextMenuRequested.connect(self.openSetMenu)
+        self.dataSetList.customContextMenuRequested.connect(self._openSetMenu)
 
         leftLayout.addWidget(QtGui.QLabel(self.DATASET_TEXT, self))
         leftLayout.addWidget(self.dataSetList)
@@ -177,6 +177,8 @@ class SynchManager(QtGui.QWidget):
         self.symTree.setColumnCount( len(self.TREE_HEADER) )
         self.symTree.setHeaderLabels( self.TREE_HEADER )
         self.symTree.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+        self.symTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.symTree.customContextMenuRequested.connect(self._openParamMenu)
 
         rightLayout.addWidget(QtGui.QLabel(self.COMPARISON_TEXT, self))
         rightLayout.addWidget(self.symTree)
@@ -239,7 +241,7 @@ class SynchManager(QtGui.QWidget):
             item.setText( 2, str(val) )
 
             try:
-                symbol = self._calmeas.targetSymbols[name]
+                symbol = self._calmeas.workingSymbols[name]
                 item.setText( 1, symbol.getValueStr(self._cachedTargetValues[name]) )
                 toolTip = symbol.desc
             except Exception, e:
@@ -257,19 +259,17 @@ class SynchManager(QtGui.QWidget):
 
     def _returnSet(self):
         if self.chBoxTarget.isChecked():
-            dftSetName = "Target_{}".format(datetime.now().strftime("%Y%m%d_%H%M%S"))
 
-            newSetName = ''
-            OK = True
-            while not newSetName and OK:
-                newSetName, OK = QtGui.QInputDialog.getText(self, 'New Data Set', 'Please provide a name:', text=dftSetName)
+            currentParamStatus = [(symbol.name, symbol.isParameter) for symbol in self._calmeas.workingSymbols.values()]
+            newSetDiag = NewDataset_diag(self, currentParamStatus)
+            OK = newSetDiag.exec_()
 
             if OK:
-                selectedSet = str(newSetName)
+                selectedSet = newSetDiag.setName
                 self._calmeas.newParamSet(selectedSet)
-                
-                for symbolName, symbol in self._calmeas.workingSymbols.iteritems():
-                    if symbol.isParameter:
+
+                for symbolName, isParameter in newSetDiag.selectedSymbols:
+                    if isParameter:
                         self._calmeas.addParam(symbolName, toSet=selectedSet)
 
             else:
@@ -311,7 +311,7 @@ class SynchManager(QtGui.QWidget):
         else:
             self.chBoxSet.setEnabled(True)
 
-    def openSetMenu(self, position):
+    def _openSetMenu(self, position):
         selItems = self.dataSetList.selectedItems()
 
         menu = QtGui.QMenu()     
@@ -341,12 +341,18 @@ class SynchManager(QtGui.QWidget):
 
         newSetName = ''
         OK = True
-        while not newSetName and OK:
+        while not self._validSetName(newSetName) and OK:
             newSetName, OK = QtGui.QInputDialog.getText(self, 'New Data Set', 'Please provide a name:', text=selectedSet)
 
         if OK:
             self._calmeas.newParamSet(str(newSetName), fromSet = selectedSet)
             self.addDatasets()
+
+    def _validSetName(self, name):
+        if name!='':
+            return True
+        else:
+            return False
 
     def delDataSet(self):
         for selItem in self.dataSetList.selectedItems():
@@ -389,10 +395,113 @@ class SynchManager(QtGui.QWidget):
             with open(fname, 'w') as f:
                 json.dump(seldSets, f, indent=4, sort_keys=True)
 
+    def _openParamMenu(self, position):
+        if len(self.dataSetList.selectedItems())>0:
+            menu = QtGui.QMenu()     
+            
+            dataSet = str(self.dataSetList.selectedItems()[0].text())
+            selectedSymbolNames = [str(item.text(0)) for item in self.symTree.selectedItems()]
+
+            sa = menu.addAction("Add...")
+            sa.triggered.connect(lambda checked, ds=dataSet: self._addSymbolToSet(ds))
+            sa = menu.addAction("Remove")
+            sa.triggered.connect(lambda checked, ds=dataSet, sn=selectedSymbolNames: self._removeSymbolsFromSet(ds, sn))
+
+            a = menu.exec_(self.symTree.viewport().mapToGlobal(position))    
+
+    def _addSymbolToSet(self, dataSet):
+        symbols = [(symbol.name, False) for symbol in self._calmeas.workingSymbols.values()]
+        addParamDiag = AddParam_diag(self, symbols)
+        OK = addParamDiag.exec_()
+
+        if OK:
+            for symbolName, isParameter in addParamDiag.selectedSymbols:
+                if isParameter:
+                    self._calmeas.addParam(symbolName, toSet=dataSet)
+
+            self.addDatasets()
+
+    def _removeSymbolsFromSet(self, dataSet, symbolNames):
+        for symbolName in symbolNames:
+            self._calmeas.removeParam(symbolName, fromSet=dataSet)
+        
+        self.addDatasets()
+
+class NewDataset_diag(QtGui.QDialog):
+
+    WINDOWTITLE = "Create new dataset"
+    NAME_TEXT = "Name"
+    SYMBOLS_TEXT = "Symbols"
+    NAME_DFT_TEMPLATE = "Target_{}"
+
+    def __init__(self, parent=None, symbolNames=list(), setName=True):
+        super(NewDataset_diag, self).__init__(parent)
+
+        self.setWindowTitle(self.WINDOWTITLE)
+
+        layout = QtGui.QVBoxLayout()
+
+        if setName:
+            layout.addWidget(QtGui.QLabel(self.NAME_TEXT, self))
+
+            dftSetName = self.NAME_DFT_TEMPLATE.format(datetime.now().strftime("%Y%m%d_%H%M%S"))
+            self.nameEditor = QtGui.QLineEdit(dftSetName, self)
+            layout.addWidget(self.nameEditor)
+
+        layout.addWidget(QtGui.QLabel(self.SYMBOLS_TEXT, self))
+
+        self.list = QtGui.QListWidget(self)
+        layout.addWidget(self.list)
+
+        buttonBox = QtGui.QDialogButtonBox()
+        buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel | QtGui.QDialogButtonBox.Ok)
+        layout.addWidget(buttonBox)
+
+        self.setLayout(layout)
+
+        self.setFixedSize(400, 500)
+
+        buttonBox.button(QtGui.QDialogButtonBox.Ok).clicked.connect(self._ok)
+        buttonBox.button(QtGui.QDialogButtonBox.Cancel).clicked.connect(self._cancel)
+
+        for name, isParameter in sorted(symbolNames, key=lambda kv: kv[0]):
+            item = QtGui.QListWidgetItem(name, self.list)
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+            if isParameter:
+                item.setCheckState(QtCore.Qt.Checked)
+            else:
+                item.setCheckState(QtCore.Qt.Unchecked)
+
+    def _ok(self):
+        self.selectedSymbols = []
+        model = self.list.model()
+        for index in xrange(self.list.count()):
+            item = self.list.item(index)
+            self.selectedSymbols.append( (str(item.text()), item.checkState()==QtCore.Qt.Checked) )
+        
+        try:
+            self.setName = str(self.nameEditor.text())
+        except Exception, e:
+            self.setName = ""
+        
+        self.accept()
+
+    def _cancel(self):
+        self.selectedSymbols = []
+        self.setName = ""
+        self.reject()
+
+class AddParam_diag(NewDataset_diag):
+
+    WINDOWTITLE = "Add a new symbol"
+
+    def __init__(self, parent=None, symbolNames=list()):
+        super(AddParam_diag, self).__init__(parent, symbolNames, False)
+
 class symTreeItem( QtGui.QTreeWidgetItem ):
 
     def __init__( self, parent, symbol, targetVal):
-
         super( symTreeItem, self ).__init__( parent )
         self.setText( 0, symbol.name )
         self.setText( 1, symbol.getValueStr(targetVal) )
@@ -460,14 +569,14 @@ class SynchController(QtGui.QWidget):
             if len(oldPeriods)>0 and len(set(oldPeriods).difference(set(newPeriods)))>0:
                 # If already used periods does not exist anymore, make the user assign new periods
                 self.periodDialog.exec_()
-
-            # Apply mapping (old periods -> available periods)
+            
             for name,s in self._calmeas.workingSymbols.iteritems():
                 if name in targetSymbols.keys():
+                    # Apply mapping (old periods -> available periods)
                     targetSymbols[name].setPeriod( self.periodDialog.PeriodMapping[s.period_s] )
+                    # Inherit isParameter
+                    targetSymbols[name].isParameter = s.isParameter
 
-            
-            #if not self._calmeas.workingSymbols:
             self._calmeas.workingSymbols = copy.deepcopy(targetSymbols)
 
             self._onSynchButton()

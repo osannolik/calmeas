@@ -25,7 +25,7 @@ class CalibrationController(QtGui.QWidget):
 
         newWidget.finished.connect(lambda result, cw=newWidget: self.deleteCalibrationWidget(cw))
         newWidget.RequestCalibration.connect(self.calibrate)
-        newWidget.ParametersRemoved.connect(self.removeSymbols)
+        #newWidget.ParametersRemoved.connect(self.removeSymbols)
         self.widgets.append(newWidget)
 
         newWidget.show()
@@ -57,8 +57,7 @@ class CalibrationController(QtGui.QWidget):
                 self.refreshAllParameters()
 
     def removeSymbols(self, symbolNames):
-        for symbolName in symbolNames:
-            self._calmeas.removeParam(symbolName)
+        map(self._calmeas.removeParam, symbolNames)
 
     def refreshAllParameters(self):
         '''Sets all values in all widgets according to the active calmeas set'''
