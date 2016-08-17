@@ -93,20 +93,20 @@ class CalibrationTableItem(QtGui.QTreeWidgetItem):
         self.setText(0, symbolName)
 
         datatype = self._calTable.getSymbolDatatype(symbolName)
-        self.setText( 2, datatype.text )
+        self.setText(2, datatype.text)
+
+        self.valueEditor = QtGui.QDoubleSpinBox()
 
         if datatype.isInteger():
-            self.valueEditor = QtGui.QSpinBox() # TODO: Test with uint32
-        else:
-            self.valueEditor = QtGui.QDoubleSpinBox()
+            self.valueEditor.setDecimals(0)
 
         minVal, maxVal = datatype.range()
         self.valueEditor.setRange(minVal, maxVal)
         self.valueEditor.setKeyboardTracking(False)
         self.valueEditor.valueChanged.connect(self.valueChanged)
-        self.treeWidget().setItemWidget( self, 1, self.valueEditor )
+        self.treeWidget().setItemWidget(self, 1, self.valueEditor)
         
-        self.setText( 3, self._calTable.getSymbolDesc(self.symbolName) )
+        self.setText(3, self._calTable.getSymbolDesc(self.symbolName))
 
     def valueChanged(self, val):
         self._calTable.writeValueToTarget(self.symbolName, val)

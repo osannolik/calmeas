@@ -63,6 +63,9 @@ class CalibrationBase(QtGui.QDialog):
     def writeValueToTarget(self, symbolName, value):
         '''This should be used when requesting a value to be sent to target'''
         if self._allowReqCal:
+            if self.getSymbolDatatype(symbolName).isInteger():
+                value = int(value)
+                
             self.RequestCalibration.emit([(symbolName, value)])
 
     def setValue(self, symbolName, value):
