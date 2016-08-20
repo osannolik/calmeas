@@ -70,6 +70,10 @@ class VisualBase(QtGui.QDialog):
         '''A helper for getting the time buffer of a symbol'''
         return self.getSymbol(symbolName).time
 
+    def getSymbolPeriod(self, symbolName):
+        '''A helper for getting the sample interval of a symbol'''
+        return self.getSymbol(symbolName).period_s
+
     def getSymbolDatatype(self, symbolName):
         '''A helper for getting the datatype of a symbol'''
         return self.getSymbol(symbolName).datatype

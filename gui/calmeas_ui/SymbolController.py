@@ -95,15 +95,16 @@ class SymbolController(QtGui.QWidget):
             menu = QtGui.QMenu()
 
             # Submenu for period manipulation
-            self.submenuPeriod = QtGui.QMenu("Period")
-            sa = self.submenuPeriod.addAction("Off")
-            sa.triggered.connect(lambda checked, p="Off": self.moveToPeriod(checked, p))
+            if not self._calmeas.isStarted:
+                self.submenuPeriod = QtGui.QMenu("Period")
+                sa = self.submenuPeriod.addAction("Off")
+                sa.triggered.connect(lambda checked, p="Off": self.moveToPeriod(checked, p))
 
-            for p in self._calmeas.rasterPeriods:
-                sa = self.submenuPeriod.addAction("{} ms".format(p))
-                sa.triggered.connect(lambda checked, p=p: self.moveToPeriod(checked, p))
+                for p in self._calmeas.rasterPeriods:
+                    sa = self.submenuPeriod.addAction("{} ms".format(p))
+                    sa.triggered.connect(lambda checked, p=p: self.moveToPeriod(checked, p))
 
-            menu.addMenu(self.submenuPeriod)
+                menu.addMenu(self.submenuPeriod)
 
             # Submenu for adding symbol to widget
             self.submenuAdd = QtGui.QMenu("Add to")

@@ -41,6 +41,7 @@ class YTPlotter(VisualBase):
         self._lgnd.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self._lgnd.customContextMenuRequested.connect(self._openMenu)
         self._lgnd.itemDoubleClicked.connect(self._clickedColor)
+        self._lgnd.itemClicked.connect(self._clickedItem)
         self._lgnd.setColumnCount( len(self.LEGEND_HEADER) )
         self._lgnd.setHeaderLabels( self.LEGEND_HEADER )
         self._lgnd.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
@@ -58,10 +59,7 @@ class YTPlotter(VisualBase):
         self.mainplot = self.view.addPlot()
         self.mainplot.showGrid(x=True, y=True)
 
-        self.mainplot.setMouseEnabled(x=False, y=True)
-
         self.resize(750, 360)
-
 
         self._timer = QtCore.QTimer()
         self._timer.timeout.connect(self.update)
@@ -69,7 +67,9 @@ class YTPlotter(VisualBase):
         self.updateInterval = 20
 
         self._colorCntr = 0
-        self._displayRange = 2
+        self._stacking = 0
+        self._displayRange = 10
+        self._time = dict()
 
     def addSymbols(self, symbolNames):
         for symbolName in symbolNames:
@@ -88,8 +88,19 @@ class YTPlotter(VisualBase):
 
     def start(self):
         for item in self._items():
+            symbolName = item.symbolName
+            try:
+                p = self.getSymbolPeriod(symbolName)
+            except Exception, e:
+                pass
+            else:
+                if p>0.0:
+                    self._time[symbolName] = [-p*x for x in range(int(self._displayRange/p)-1,-1,-1)]
+                else:
+                    self._time[symbolName] = [0]*len(super(YTPlotter, self).getSymbolTime(symbolName))
+
             item.enable()
-        self.mainplot.setXRange(0, self._displayRange, padding=0)
+
         self._timer.start(self.updateInterval)
 
     def stop(self):
@@ -98,12 +109,7 @@ class YTPlotter(VisualBase):
     def update(self):
         tmax = None
         for item in self._items():
-            curve_range = item.updateCurve()
-            if curve_range is not None:
-                tmax = max(tmax, curve_range[1])
-
-        if tmax>=self._displayRange:
-            self.mainplot.setXRange(tmax-self._displayRange, tmax, padding=0)
+            item.updateCurve()
 
     def symbols(self):
         return [item.symbolName for item in self._items()]
@@ -127,6 +133,10 @@ class YTPlotter(VisualBase):
             item.setColor(color)
             self.activateWindow()
             self.raise_()
+
+    def _clickedItem(self, item, col):
+        self._stacking += 1
+        item.plotData.setZValue(self._stacking)
 
     def _openMenu(self, position):
         items = self._lgnd.selectedItems()
@@ -152,6 +162,10 @@ class YTPlotter(VisualBase):
             item.setStepMode(onoff)
 
         self.update()
+
+    def getSymbolTime(self, symbolName):
+        '''A helper for getting the time buffer of a symbol'''
+        return self._time[symbolName]
 
 
 class YTPlotterItem( QtGui.QTreeWidgetItem ):
@@ -190,13 +204,15 @@ class YTPlotterItem( QtGui.QTreeWidgetItem ):
 
     def updateCurve(self):
         if self._enabled:
-            data = self._YTPlotter.getSymbolData(self.symbolName)
-            time = self._YTPlotter.getSymbolTime(self.symbolName)
-
-            if self._useStepMode:
-                self.plotData.setData(y=data[1:], x=time, stepMode=self._useStepMode)
+            try:
+                data = self._YTPlotter.getSymbolData(self.symbolName)
+                time = self._YTPlotter.getSymbolTime(self.symbolName)
+            except Exception, e:
+                # symbolName might not exist anymore
+                pass
             else:
-                self.plotData.setData(y=data, x=time, stepMode=self._useStepMode)
-            return (min(time), max(time))
-        else:
-            return None
+                if self._useStepMode:
+                    self.plotData.setData(y=data[1:], x=time, stepMode=self._useStepMode)
+                else:
+                    self.plotData.setData(y=data, x=time, stepMode=self._useStepMode)
+
