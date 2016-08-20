@@ -76,6 +76,7 @@ class YTPlotter(VisualBase):
             if symbolName not in self.symbols():
                 plotItem = YTPlotterItem(self, symbolName)
                 if self._calmeas.isStarted:
+                    self._setTimeVector(symbolName)
                     plotItem.enable()
 
     def removeSymbols(self, symbolNames):
@@ -86,19 +87,20 @@ class YTPlotter(VisualBase):
                 self.mainplot.removeItem(item)
                 root.removeChild(item)
 
+    def _setTimeVector(self, symbolName):
+        try:
+            p = self.getSymbolPeriod(symbolName)
+        except Exception, e:
+            pass
+        else:
+            if p>0.0:
+                self._time[symbolName] = [-p*x for x in range(int(self._displayRange/p)-1,-1,-1)]
+            else:
+                self._time[symbolName] = [0]*len(super(YTPlotter, self).getSymbolTime(symbolName))
+
     def start(self):
         for item in self._items():
-            symbolName = item.symbolName
-            try:
-                p = self.getSymbolPeriod(symbolName)
-            except Exception, e:
-                pass
-            else:
-                if p>0.0:
-                    self._time[symbolName] = [-p*x for x in range(int(self._displayRange/p)-1,-1,-1)]
-                else:
-                    self._time[symbolName] = [0]*len(super(YTPlotter, self).getSymbolTime(symbolName))
-
+            self._setTimeVector(item.symbolName)
             item.enable()
 
         self._timer.start(self.updateInterval)
