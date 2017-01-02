@@ -10,7 +10,17 @@
 #include "calmeas.h"
 #include "uart.h"
 
-// These five symbols will all be available for measurement and tuning
+typedef struct {
+  uint8_t  data_8b;
+  float    data_f32;
+} a_cool_struct_t;
+
+a_cool_struct_t structure = {
+    .data_8b = 1,
+    .data_f32 = 3.0
+};
+
+// These symbols will all be available for measurement and tuning
 CALMEAS_SYMBOL(float,    phase_a,          0.0,  "Phase A current");
 CALMEAS_SYMBOL(float,    phase_b,          0.0,  "Phase B current");
 CALMEAS_SYMBOL(float,    phase_c,          0.0,  "Phase C current");
@@ -19,6 +29,11 @@ CALMEAS_SYMBOL(uint8_t,  red_led_set,      0,    "Set red LED on/off");
 CALMEAS_SYMBOL(uint8_t,  green_led_set,    0,    "Set green LED on/off");
 CALMEAS_SYMBOL(float,    green_led_period, 0.2,  "Period of green led blinking [s]");
 CALMEAS_SYMBOL(float,    phase_a_amp,      10.0, "Amplitude of Phase A");
+
+CALMEAS_SYMBOL_BY_ADDRESS(uint8_t, symbol_name_data_8b,  &(structure.data_8b),  "A byte in struct");
+CALMEAS_SYMBOL_BY_ADDRESS(float,   symbol_name_data_f32, &(structure.data_f32), "Floater in struct");
+CALMEAS_SYMBOL(uint8_t,  measure_data_8b,  0,   "Measure data_8b");
+CALMEAS_SYMBOL(float,    measure_data_f32, 0.0, "Measure data_f32");
 
 static void SystemClock_Config(void);
 static void Error_Handler(void);
@@ -99,6 +114,9 @@ void your_fantastic_application(void)
   phase_a = phase_a_amp * cosf(6.28*1*t);
   phase_b = 10 * cosf(6.28*1*t - 6.28/3);
   phase_c = 10 * cosf(6.28*1*t + 6.28/3);
+
+  measure_data_8b = structure.data_8b;
+  measure_data_f32 = structure.data_f32;
 
   ticker += 0.001;
   t += 0.001;

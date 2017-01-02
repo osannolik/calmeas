@@ -105,9 +105,18 @@ typedef enum {
 #define CALMEAS_MEMSEC(type)       CALMEAS_MEMSEC_ ## type
 
 
+/*
+ * Declare and define a symbol that will be available for both tuning and measurement.
+ * The variable will be placed at the memory segment specified by the corresponding CALMEAS_MEMSEC macro.
+ */
 #define CALMEAS_SYMBOL(type, name, init, desc) type name CALMEAS_MEMSEC(type) = init; \
     calmeas_meta_t calmeas_meta_ ## name CALMEAS_MEMSEC_META = {CALMEAS_TYPECODE(type), #name, &(name), desc}
 
+/*
+ * Make a specific address become both tunable and measurable.
+ * No data will be declared except the meta-data for the created symbol.
+ */
+#define CALMEAS_SYMBOL_BY_ADDRESS(type, name, address, desc) calmeas_meta_t calmeas_meta_ ## name CALMEAS_MEMSEC_META = {CALMEAS_TYPECODE(type), #name, address, desc}
 
 int calmeas_init();
 int calmeas_send_meas_all();
