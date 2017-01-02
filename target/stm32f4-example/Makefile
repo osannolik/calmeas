@@ -19,6 +19,7 @@ OUTMAP = $(OUTFILE:.elf=.map)
 TOOL_PREFIX = /usr/local/gcc-arm-none-eabi-4_9-2015q2
 PRG_PREFIX = $(TOOL_PREFIX)/bin/arm-none-eabi-
 LIB_PREFIX = $(TOOL_PREFIX)/arm-none-eabi/lib/armv7e-m/fpu
+MKDIR = mkdir -p
 # The libs in /fpu are for use with float-abi = hard
 
 CC = $(PRG_PREFIX)gcc
@@ -72,7 +73,8 @@ all: $(OUTFILE)
 fresh: clean all
 
 $(OBJDIR)/%.o: %.c
-	@echo "Compiling $@"
+	@echo "Compiling $<"
+	@$(MKDIR) $(@D)
 	@$(CC) -c -o $@ $< $(CFLAGS)
 
 $(OUTFILE): $(OBJFILES)
@@ -89,6 +91,6 @@ $(OUTFILE): $(OBJFILES)
 
 clean:
 	@echo Cleaning...
-	@rm -f $(OUTFILE) $(OUTHEX) $(OUTBIN) $(OUTLIST) $(OUTMAP) $(OBJFILES) $(DEP)
+	@rm -R -f $(OUTDIR)
 
 -include $(DEP)

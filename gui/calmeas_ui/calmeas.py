@@ -397,10 +397,10 @@ class CalMeas():
         if f.mid in self._ID_CallBacks.keys():
             self._ID_CallBacks[f.mid](f)
         else:
-            logging.debug('ID 0x{:x} is not valid'.format(f.mid))
+            logging.warning('ID 0x{:x} is not valid'.format(f.mid))
 
     def ID_Meta_Callback(self, f):
-        logging.debug('Response on ID CALMEAS_ID_META')
+        logging.info('Response on ID CALMEAS_ID_META')
 
         dataTypeStructure = [ctypes.c_uint8, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32]
 
@@ -418,28 +418,28 @@ class CalMeas():
 
 
     def ID_SymbolName_Callback(self, f):
-        logging.debug('Response on ID CALMEAS_ID_SYMBOL_NAME')
+        logging.info('Response on ID CALMEAS_ID_SYMBOL_NAME')
 
-        name = f.FrameBytesFormatted(formatting='c', spacing='')[2:]
+        name = f.FrameBytesFormatted(formatting='c', spacing='')[3:]
 
         putResponseData(self._ResponseFifo, name)
 
 
     def ID_SymbolDesc_Callback(self, f):
-        logging.debug('Response on ID CALMEAS_ID_SYMBOL_DESC')
+        logging.info('Response on ID CALMEAS_ID_SYMBOL_DESC')
 
         desc = f.FrameBytesFormatted(formatting='c', spacing='')[2:]
 
         putResponseData(self._ResponseFifo, desc)
 
     def ID_All_Callback(self, f):
-        logging.debug('Response on ID CALMEAS_ID_ALL')
+        logging.info('Response on ID CALMEAS_ID_ALL')
 
     def ID_StreamAll_Callback(self, f):
-        logging.debug('Response on ID CALMEAS_ID_STREAM_ALL')
+        logging.info('Response on ID CALMEAS_ID_STREAM_ALL')
 
     def ID_Raster_Callback(self, f):
-        #logging.debug('Response on ID CALMEAS_ID_RASTER')
+        #logging.info('Response on ID CALMEAS_ID_RASTER')
         #logging.debug(f.FrameBytesFormatted())
 
         rasterIndex = f.getData([ctypes.c_uint8])[0].value
@@ -451,10 +451,10 @@ class CalMeas():
 
 
     def ID_RasterSet_Callback(self, f):
-        logging.debug('Response on ID CALMEAS_ID_RASTER_SET')
+        logging.info('Response on ID CALMEAS_ID_RASTER_SET')
 
     def ID_RasterPeriods_Callback(self, f):
-        logging.debug('Response on ID CALMEAS_ID_RASTER_PERIODS')
+        logging.info('Response on ID CALMEAS_ID_RASTER_PERIODS')
         logging.debug(f.FrameBytesFormatted())
 
         dataTypeStructure = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32]
@@ -487,35 +487,13 @@ class CalMeas():
         self._comhandler.sendFrame(f)
 
         try:
-            logging.debug('>> Waiting for raster periods')
             periods = getResponseData(self._ResponseFifo, timeout)
         except Queue.Empty:
             raise Exception('Timeout trying to get raster periods.')
         else:
-            logging.debug("<< Got it")
             self.rasterPeriods = [p/1000.0 for p in periods]
 
         return self.rasterPeriods
-
-    def initializeMeasurements(self):
-        # Update target symbols
-        try:
-            self.requestTargetSymbols()
-            self.requestTargetRasterPeriods()
-        except Exception, e:
-            raise e
-
-        # Inherit periods from current set of working symbols
-        for name,s in self.workingSymbols.iteritems():
-            if name in self.targetSymbols.keys():
-                if s.period_s in self.rasterPeriods:
-                    self.targetSymbols[name].setPeriod(s.period_s)
-                else:
-                    self.targetSymbols[name].setPeriod(0.0)
-
-        # Set working symbols as target symbols
-        self.workingSymbols = self.targetSymbols
-
 
     def requestTargetSymbols(self, timeout=1):
         targetSymbols = dict()
@@ -529,16 +507,13 @@ class CalMeas():
 
         self._comhandler.sendFrame(f)
 
-        logging.debug('>> Waiting for meta data')
         try:
             meta = getResponseData(self._ResponseFifo, timeout)
         except Queue.Empty:
             raise Exception('Timeout trying to get meta data.')
-        else:
-            logging.debug("<< Got it")
 
         for index, symbol in enumerate(meta):
-            logging.debug(">>> Loop index {}".format(index))
+            logging.info("Getting symbol with index {}".format(index))
 
             s = Symbol()
             s.index = index
@@ -552,25 +527,21 @@ class CalMeas():
             f.setData([ctypes.c_uint8(index)])
             self._comhandler.sendFrame(f)
 
-            logging.debug('>> Waiting for name of {}'.format(index))
+            logging.debug('Waiting for name of {}'.format(index))
             try:
                 s.name = getResponseData(self._ResponseFifo, timeout)
             except Queue.Empty:
                 raise Exception('Timeout trying to get symbol names.')
-            else:
-                logging.debug("<< Got it")
 
             f.mid = CALMEAS_ID_SYMBOL_DESC
             f.setData([ctypes.c_uint8(index)])
             self._comhandler.sendFrame(f)
 
-            logging.debug('>> Waiting for description of {}'.format(index))
+            logging.debug('Waiting for description of {}'.format(index))
             try:
                 s.desc = str(getResponseData(self._ResponseFifo, timeout))
             except Queue.Empty:
                 raise Exception('Timeout trying to get symbol description.')
-            else:
-                logging.debug("<< Got it")
 
             targetSymbols[s.name] = s
 

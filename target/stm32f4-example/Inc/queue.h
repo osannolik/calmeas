@@ -13,7 +13,7 @@
 #include <stddef.h>
 
 
-#define QUEUE_PBUF_LEN (255)
+#define QUEUE_PBUF_LEN (1023)
 
 typedef uint8_t queue_data_type_t;
 

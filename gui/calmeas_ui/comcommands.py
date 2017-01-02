@@ -77,13 +77,13 @@ class ComCommands():
             return d
 
     def ID_Error_Callback(self, f):
-        logging.debug('Response on ID COM_ID_ERROR')
+        logging.info('Response on ID COM_ID_ERROR')
 
     def ID_WriteTo_Callback(self, f):
-        logging.debug('Response on ID COM_ID_WRITE_TO')
+        logging.info('Response on ID COM_ID_WRITE_TO')
 
     def ID_ReadFrom_Callback(self, f):
-        logging.debug('Response on ID COM_ID_READ_FROM')
+        logging.info('Response on ID COM_ID_READ_FROM')
 
         try:
             request = self._readRequestsFifo.get_nowait()
@@ -113,5 +113,5 @@ class ComCommands():
         elif f.mid==COM_ID_READ_FROM:
             self.ID_ReadFrom_Callback(f)
         else:
-            logging.debug('ID 0x{:x} is not valid'.format(f.mid))
+            logging.warning('ID 0x{:x} is not valid'.format(f.mid))
             

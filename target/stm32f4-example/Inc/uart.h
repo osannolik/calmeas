@@ -12,10 +12,12 @@
 #include "cobs.h"
 #include "stm32f4xx_hal.h"
 
-#define UART_BUF_TX_LEN           (256) // Use maximum approx 0.8 * baudrate * usart_Handler period / 8, and not less than ...
+#define UART_FRAME_DELIMITER      0x00
 #define UART_FRAME_DELIMITER_LEN  (1)
 #define UART_FRAME_OVERHEAD       (COBS_OVERHEAD_MAX + UART_FRAME_DELIMITER_LEN)
-#define UART_FRAME_DELIMITER      0x00
+
+#define UART_BUF_TX_LEN           (COBS_DATA_LEN_MAX + UART_FRAME_OVERHEAD) // Use maximum approx 0.8 * baudrate * usart_Handler period / 8, and not less than ...
+
 #define UART_TXDATA_TIMEOUT_MS    (1)
 #define UART_BAUDRATE             (921600)
 

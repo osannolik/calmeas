@@ -8,8 +8,8 @@ logging.basicConfig(level=logging.DEBUG, datefmt='%H:%M:%S',
 
 
 FRAME_START = ord('s')
-FRAME_HEADER_SIZE = 2
-FRAME_DATA_SIZE_MAX = 256
+FRAME_HEADER_SIZE = 3
+FRAME_DATA_SIZE_MAX = 512
 FRAME_SIZE_RAW_MAX = FRAME_DATA_SIZE_MAX+FRAME_HEADER_SIZE
 
 
@@ -31,9 +31,9 @@ class Frame_Data_Fields(ctypes.Union):
 
 class Frame_Bits(ctypes.Structure):
     _pack_ = 1
-    _fields_ = [ ('interface',  ctypes.c_uint8, 4),
-                 ('mid',        ctypes.c_uint8, 4),
-                 ('data_size',  ctypes.c_uint8, 8),
+    _fields_ = [ ('interface',  ctypes.c_uint8,  4),
+                 ('mid',        ctypes.c_uint8,  4),
+                 ('data_size',  ctypes.c_uint16, 16),
                  ('data',       Frame_Data_Fields) ]
 
 class Frame_raw(ctypes.Union):

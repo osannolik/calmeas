@@ -8,6 +8,7 @@
 #include "main.h"
 #include "math.h"
 #include "calmeas.h"
+#include "uart.h"
 
 // These five symbols will all be available for measurement and tuning
 CALMEAS_SYMBOL(float,    phase_a,          0.0,  "Phase A current");

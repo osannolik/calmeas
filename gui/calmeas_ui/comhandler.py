@@ -24,16 +24,23 @@ class ComHandler():
             self.new_frame.append(b)
             return self._GetHeader
         else:
-            print str(b) + " is not start"
+            logging.warning('{} is not start'.format(b))
             return self._WaitForStart
 
     def _GetHeader(self, b):
         self.new_frame.append(b)
-        return self._GetSize
+        return self._GetSize_1
 
-    def _GetSize(self, b):
+    def _GetSize_1(self, b):
         self.new_frame.append(b)
-        self.expected_data_len = int(b)
+        return self._GetSize_2
+
+    def _GetSize_2(self, b):
+        self.new_frame.append(b)
+        b_h = int(self.new_frame[-1]) << 8
+        b_l = int(self.new_frame[-2])
+        self.expected_data_len = b_h | b_l
+
         if self.expected_data_len==0:
             self.full_frames.append(self.new_frame)
             return self._WaitForStart
@@ -134,7 +141,7 @@ class ComHandlerThread(Thread, ComHandler):
         self.setDaemon(True)
 
     def run(self):
-        logging.debug('Starting...')
+        logging.info('Starting...')
         
         self._quit = False
 
@@ -148,7 +155,7 @@ class ComHandlerThread(Thread, ComHandler):
             except Exception, e:
                 logging.warning(str(e))
 
-        logging.debug('Stopping...')
+        logging.info('Stopping...')
 
     def stop(self):
         self._quit = True

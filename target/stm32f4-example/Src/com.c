@@ -96,11 +96,16 @@ int com_parse_message(uint8_t *data, uint32_t len, uint8_t port)
 
       case GET_HEADER:
         inbox_msg->header.raw[0] = data[i];
-        com_data[port].state = GET_SIZE;
+        com_data[port].state = GET_SIZE_1;
         break;
 
-      case GET_SIZE:
-        inbox_msg->header.size = data[i];
+      case GET_SIZE_1:
+        inbox_msg->header.size = (com_header_size_t) data[i];
+        com_data[port].state = GET_SIZE_2;
+        break;
+
+      case GET_SIZE_2:
+        inbox_msg->header.size |= (((com_header_size_t) data[i]) << 8);
         inbox_msg->len = 0;
         if (inbox_msg->header.size == 0) {
           com_do_callback(inbox_msg);
@@ -144,7 +149,8 @@ int com_put_message(com_message_t *msg)
 
   queue_Push(buffer, COM_PACKET_START);
   queue_Push(buffer, msg->header.raw[0]);
-  queue_Push(buffer, (uint8_t) msg->len);
+  queue_Push(buffer, (queue_data_type_t) (0xFF & msg->len));
+  queue_Push(buffer, (queue_data_type_t) (msg->len >> 8));
 
   uint32_t i;
   for (i=0; i<msg->len; i++)
@@ -259,13 +265,13 @@ int com_commands_write(com_message_t *msg_request)
 
 int com_commands_send_error(com_message_t *msg)
 {  
-  uint8_t data[COM_HDR_SIZE] = {msg->header.interface, msg->header.id};
+  uint8_t data[2] = {msg->header.interface, msg->header.id};
   
   msg->header.interface = COM_INTERFACE;
   msg->header.id = COM_ERROR;
-  msg->header.size = COM_HDR_SIZE;
+  msg->header.size = 2;
   msg->address = data;
-  msg->len = COM_HDR_SIZE;
+  msg->len = 2;
 
   return com_put_message(msg);
 }

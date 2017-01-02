@@ -82,6 +82,9 @@ uint32_t uart_send_data(uint8_t* pData, uint16_t len)
   if (uart_data.TxState == UART_TRANSMITTING)
     return 0;
 
+  if (len > COBS_DATA_LEN_MAX)
+    len = COBS_DATA_LEN_MAX;
+
   bufEntry = cobs_Encode((uint8_t *) pData, len, (uint8_t *) uart_ByteBufTx);
   *bufEntry++ = UART_FRAME_DELIMITER;
 

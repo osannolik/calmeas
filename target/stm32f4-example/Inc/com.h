@@ -10,11 +10,10 @@
 
 #include <stdint.h>
 #include "queue.h"
-#include "uart.h"
 
 #define COM_INTERFACE             (0)
 
-#define COM_HDR_SIZE              (2)
+#define COM_HDR_SIZE              (3)
 #define COM_PACKET_OVERHEAD_SIZE  (1+COM_HDR_SIZE) // 1 is start byte
 
 #define COM_INTERFACE_BITS        (4)
@@ -43,16 +42,19 @@ enum {
 typedef enum {
   WAIT_FOR_START = 0,
   GET_HEADER,
-  GET_SIZE,
+  GET_SIZE_1,
+  GET_SIZE_2,
   GET_DATA
 } com_parser_state_t;
+
+typedef uint16_t com_header_size_t;
 
 typedef union {
   uint8_t raw[COM_HDR_SIZE];
   struct {
     uint8_t interface : COM_INTERFACE_BITS;
     uint8_t id        : COM_ID_BITS;
-    uint8_t size;
+    com_header_size_t size;
   };
 } __attribute__((packed)) com_header_t;
 
