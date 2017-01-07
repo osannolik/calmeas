@@ -35,7 +35,7 @@ class ComCommands():
     def __init__(self, comhandler):
         self._comhandler = comhandler
 
-        self._comhandler.enableInterface(COM_INTERFACE, self.interfaceCallback)
+        self._comhandler.addInterfaceCallback(COM_INTERFACE, self.interfaceCallback)
 
         # Strategy assumes response order 1,2... for requests 1,2...
         # It is the callers responsibility to check if that is valid

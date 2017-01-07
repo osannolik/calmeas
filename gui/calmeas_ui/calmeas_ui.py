@@ -54,7 +54,7 @@ class CalMeas_UI(QtGui.QMainWindow):
         #self.tabWidget = QtGui.QTabWidget(self)
         #self.tabWidget.addTab(self.MeasController.ui, "Symbols")
         self.bottomLayout.addWidget(self.SymbolController.ui)
-        self.bottomLayout.addWidget(self.MeasController.ui)
+        self.addToolBar(self.MeasController.ui_toolbar)
 
         self.topLayout.addWidget(self.SerialController.ui, stretch=0)
         self.topLayout.addStretch()

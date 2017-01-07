@@ -130,6 +130,9 @@ class Symbol():
         else:
             return None
 
+    def getSymbolTime(self):
+        return self.time[-1]
+
     def setValue(self, val):
 
         self.data[:-1] = self.data[1:]
@@ -155,7 +158,7 @@ class CalMeas():
     def __init__(self, comhandler):
         self._comhandler = comhandler
 
-        self._comhandler.enableInterface(CALMEAS_INTERFACE, self.interfaceCallback)
+        self._comhandler.addInterfaceCallback(CALMEAS_INTERFACE, self.interfaceCallback)
 
         self.comcmds = ComCommands(self._comhandler)
 
@@ -195,6 +198,7 @@ class CalMeas():
             self.raster.append(list())
             self.rasterDataStructures.append(list())
 
+        self._updatedSymbolValueCallback = None
 
 
     def importParamSet(self, name, setData):
@@ -448,7 +452,12 @@ class CalMeas():
         for i, symbolName in enumerate(self.raster[rasterIndex]):
             val = data[i].value
             self.workingSymbols[symbolName].setValue(val)
+            if self._updatedSymbolValueCallback is not None:
+                self._updatedSymbolValueCallback(self.workingSymbols[symbolName])
 
+
+    def setUpdatedSymbolValueCallback(self, callback):
+        self._updatedSymbolValueCallback = callback        
 
     def ID_RasterSet_Callback(self, f):
         logging.info('Response on ID CALMEAS_ID_RASTER_SET')

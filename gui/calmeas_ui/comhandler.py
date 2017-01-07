@@ -72,8 +72,17 @@ class ComHandler():
         self.state_machine = self._WaitForStart
         self.new_frame = bytearray()
 
-    def enableInterface(self, interface, callback):
-        self._interfaces[int(interface)] = callback
+    def addInterfaceCallback(self, interface, callback=None):
+        if int(interface) not in self._interfaces.keys():
+            self._interfaces[int(interface)] = list()
+        
+        self._interfaces[int(interface)].append(callback)
+
+    def removeInterfaceCallback(self, interface, callback):
+        try:
+            self._interfaces[int(interface)].remove(callback)
+        except Exception, e:
+            pass
 
     def disableInterface(self, interface):
         del self._interfaces[int(interface)]
@@ -102,11 +111,10 @@ class ComHandler():
 
                 interface = int(frame.interface)
                 if interface in self._interfaces.keys():
-                    callback_handle = self._interfaces[interface]
-                    if callback_handle is not None:
-                        callback_handle(frame)
-                    else:
-                        logging.warning('Interface 0x{0:x} has no registered callback function'.format(interface))
+                    for callback_handle in self._interfaces[interface]:
+                        if callback_handle is not None:
+                            callback_handle(frame)
+
                 else:
                     logging.warning('Interface 0x{0:x} is not an enabled interface'.format(interface))
 
