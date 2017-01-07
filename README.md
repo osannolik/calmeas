@@ -24,6 +24,7 @@ This project provides a solution to shorten the development loops in such cases 
 * Easy to add custom visualization widgets
 * Commands and data is transferred between target and desktop via a USB-to-serial adapter, but the protocol is easy to port to other methods of communication as well, e.g. Bluetooth, CAN, wifi...
 * Save parameter data sets
+* Save measured data to csv files
 * Very simple variable declaration macros in target code: 
 
 <img src="doc/png/variable_decl.png" width="512">
