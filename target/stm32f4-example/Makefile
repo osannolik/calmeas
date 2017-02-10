@@ -73,7 +73,7 @@ all: $(OUTFILE)
 fresh: clean all
 
 $(OBJDIR)/%.o: %.c
-	@echo "Compiling $<"
+	@echo "CC $<"
 	@$(MKDIR) $(@D)
 	@$(CC) -c -o $@ $< $(CFLAGS)
 

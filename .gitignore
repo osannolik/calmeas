@@ -1,5 +1,10 @@
 !.gitignore
+build/*
 *.pyc
 *.o
 *.d
 .DS_Store
+target/stm32f4-example/build/*
+target/stm32f4-example/.settings/*
+target/stm32f4-example/.cproject
+target/stm32f4-example/.project
