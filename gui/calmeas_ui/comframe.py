@@ -157,6 +157,9 @@ class ComFrame(Frame_raw):
 
         self._isValid = (FRAME_HEADER_SIZE <= self.frame_size_raw <= FRAME_SIZE_RAW_MAX) and (startByte==FRAME_START)
 
+        if not self._isValid:
+            print "Frame size error: frame length = {}".format(self.frame_size_raw)
+
         if self._isValid:
             for i,b in enumerate(frameBytes):
                 self.raw[i] = ctypes.c_uint8(b)
@@ -167,6 +170,13 @@ class ComFrame(Frame_raw):
             crc = crc8_block([self.status])
             crc = crc8_block(self.data.raw[:self.data_size], crc)
             self._isValid = self._isValid and (self.data.raw[self.data_size] == crc)
+
+            # if not self.data.raw[self.data_size] == crc:
+            #     print ""
+            #     print "CRC Error: frame {:#x} != calculated {:#x}".format(self.data.raw[self.data_size], crc)
+            #     print "{}".format(self.FrameBytesFormatted())
+            #     print "data_size      = {:#x} ({})".format(int(self.data_size), int(self.data_size))
+            #     print "frame_size_raw = {:#x} ({})".format(int(self.frame_size_raw), int(self.frame_size_raw))
 
     def setData(self, data, calculate_length=True, endian='big', crc_len = CRC_LEN_TX):
         data.reverse()

@@ -44,8 +44,11 @@ class ComHandler():
     def _GetHeader(self, b):
         self.new_frame.append(b)
         if self.expected_data_len==0:
-            self.full_frames.append(self.new_frame)
-            return self._WaitForStart
+            if self.crc_len > 0:
+                return self._GetCrc
+            else:
+                self.full_frames.append(self.new_frame)
+                return self._WaitForStart
         else:
             self.data_cntr = 0
             return self._GetData
@@ -54,10 +57,10 @@ class ComHandler():
         self.new_frame.append(b)
         self.data_cntr += 1
         if self.data_cntr==self.expected_data_len:
-            self.full_frames.append(self.new_frame)
             if self.crc_len > 0:
                 return self._GetCrc
             else:
+                self.full_frames.append(self.new_frame)
                 return self._WaitForStart
         else:
             return self._GetData
@@ -67,6 +70,7 @@ class ComHandler():
         self.crc_len -= 1
         if self.crc_len==0:
             self.crc_len = CRC_LEN_RX
+            self.full_frames.append(self.new_frame)
             return self._WaitForStart
         else:
             return self._GetCrc
