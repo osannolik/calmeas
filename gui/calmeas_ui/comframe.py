@@ -155,15 +155,18 @@ class ComFrame(Frame_raw):
 
         self.frame_size_raw = len(frameBytes)
 
-        if do_assert:
-            self._isValid = (FRAME_HEADER_SIZE <= self.frame_size_raw <= FRAME_SIZE_RAW_MAX) and (startByte==FRAME_START)
+        self._isValid = (FRAME_HEADER_SIZE <= self.frame_size_raw <= FRAME_SIZE_RAW_MAX) and (startByte==FRAME_START)
 
-        if (do_assert and self._isValid) or not do_assert:
+        if self._isValid:
             for i,b in enumerate(frameBytes):
                 self.raw[i] = ctypes.c_uint8(b)
 
-        if do_assert:
-            self._isValid = (int(self.data_size) == self.frame_size_raw-FRAME_HEADER_SIZE)
+        self._isValid = self._isValid and (int(self.data_size) == self.frame_size_raw-FRAME_HEADER_SIZE-crc_len)
+
+        if crc_len == 1:
+            crc = crc8_block([self.status])
+            crc = crc8_block(self.data.raw[:self.data_size], crc)
+            self._isValid = self._isValid and (self.data.raw[self.data_size] == crc)
 
     def setData(self, data, calculate_length=True, endian='big', crc_len = CRC_LEN_TX):
         data.reverse()
@@ -272,10 +275,25 @@ class ComFrame(Frame_raw):
 
         return bytes
 
-    def FrameBytesFormatted(self, formatting='x', spacing=' '):
-        frame_str = ['{:#'+formatting+'}'] * self.frame_size_raw
+    def GetDataBytesRaw(self):
+        bytes = bytearray()
 
-        return spacing.join(frame_str).format(*self.GetFrameBytesRaw())
+        for i in range(self.data_size):
+            bytes.append(self.data.raw[i])
+
+        return bytes
+
+    def FrameBytesFormatted(self, formatting='x', spacing=' '):
+        bytes = self.GetFrameBytesRaw()
+        frame_str = ['{:#'+formatting+'}'] * len(bytes)
+
+        return spacing.join(frame_str).format(*bytes)
+
+    def DataBytesFormatted(self, formatting='x', spacing=' '):
+        bytes = self.GetDataBytesRaw()
+        frame_str = ['{:#'+formatting+'}'] * len(bytes)
+
+        return spacing.join(frame_str).format(*bytes)
 
     def Validity(self):
         return self._isValid

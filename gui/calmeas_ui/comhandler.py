@@ -1,4 +1,5 @@
 from comframe import FRAME_START
+from comframe import CRC_LEN_RX
 from comframe import ComFrame
 
 from threading import Thread
@@ -17,6 +18,7 @@ class ComHandler():
         self._queue_rx = None
         self._queue_tx = None
         self._frameQueue_tx = Queue.Queue(1000)
+        self.crc_len = CRC_LEN_RX
 
     def _WaitForStart(self, b):
         if b==FRAME_START:
@@ -53,9 +55,21 @@ class ComHandler():
         self.data_cntr += 1
         if self.data_cntr==self.expected_data_len:
             self.full_frames.append(self.new_frame)
-            return self._WaitForStart
+            if self.crc_len > 0:
+                return self._GetCrc
+            else:
+                return self._WaitForStart
         else:
             return self._GetData
+
+    def _GetCrc(self, b):
+        self.new_frame.append(b)
+        self.crc_len -= 1
+        if self.crc_len==0:
+            self.crc_len = CRC_LEN_RX
+            return self._WaitForStart
+        else:
+            return self._GetCrc
 
     def ParseBytes(self, bytes):
         # Search for start byte etc
@@ -71,6 +85,7 @@ class ComHandler():
         self.full_frames = list()
         self.state_machine = self._WaitForStart
         self.new_frame = bytearray()
+        self.crc_len = CRC_LEN_RX
 
     def addInterfaceCallback(self, interface, callback=None):
         if int(interface) not in self._interfaces.keys():
@@ -108,18 +123,22 @@ class ComHandler():
 
             for framebytes in full_frames:
                 frame = ComFrame(framebytes)
+                interface = int(frame.interface)
 
                 #print "{}".format(frame.FrameBytesFormatted())
                 #print "IsValid = {}".format(frame.Validity())
 
-                interface = int(frame.interface)
-                if interface in self._interfaces.keys():
-                    for callback_handle in self._interfaces[interface]:
-                        if callback_handle is not None:
-                            callback_handle(frame)
+                if frame.Validity():
+                    if interface in self._interfaces.keys():
+                        for callback_handle in self._interfaces[interface]:
+                            if callback_handle is not None:
+                                callback_handle(frame)
+
+                    else:
+                        logging.warning('Interface 0x{0:x} is not an enabled interface'.format(interface))
 
                 else:
-                    logging.warning('Interface 0x{0:x} is not an enabled interface'.format(interface))
+                    logging.warning('Skipped invalid frame on interface 0x{0:x}'.format(interface))
 
     def putFrame(self, frame):
         if self._frameQueue_tx is not None:
