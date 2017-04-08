@@ -432,7 +432,7 @@ class CalMeas():
     def ID_SymbolDesc_Callback(self, f):
         logging.info('Response on ID CALMEAS_ID_SYMBOL_DESC')
 
-        desc = f.FrameBytesFormatted(formatting='c', spacing='')[2:]
+        desc = f.FrameBytesFormatted(formatting='c', spacing='')[3:]
 
         putResponseData(self._ResponseFifo, desc)
 

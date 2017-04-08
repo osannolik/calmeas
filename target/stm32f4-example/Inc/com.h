@@ -11,6 +11,9 @@
 #include <stdint.h>
 #include "queue.h"
 
+#define _COM_ENTER_CRITICAL()
+#define _COM_EXIT_CRITICAL()
+
 #define COM_INTERFACE             (0)
 
 #define COM_HDR_SIZE              (3)
@@ -25,6 +28,8 @@
 
 #define COM_BUFFER_RX_SIZE        (256)
 
+#define COM_CRC_LEN_RX            (1)
+
 typedef enum {
   COM_ERROR = 0,
   COM_WRITE_TO = 1,
@@ -36,6 +41,7 @@ enum {
   // Must start at 0 and be sequential 0,1,2... etc
   uart = 0,
   //radio,
+  // my_new_port,
   COM_NUMBER_OF_PORTS
 };
 
@@ -44,26 +50,27 @@ typedef enum {
   GET_HEADER,
   GET_SIZE_1,
   GET_SIZE_2,
-  GET_DATA
+  GET_DATA,
+  CALC_CRC
 } com_parser_state_t;
 
-typedef uint16_t com_header_size_t;
-
-typedef union {
-  uint8_t raw[COM_HDR_SIZE];
-  struct {
-    uint8_t interface : COM_INTERFACE_BITS;
-    uint8_t id        : COM_ID_BITS;
-    com_header_size_t size;
+typedef struct {
+  uint16_t size;
+  union {
+    uint8_t status;
+    struct {
+      uint8_t interface : COM_INTERFACE_BITS;
+      uint8_t id        : COM_ID_BITS;
+    };
   };
-} __attribute__((packed)) com_header_t;
+} com_header_t;
 
 typedef struct {
   com_header_t header;
   uint8_t* address;
   uint32_t len;
   uint8_t port;
-} __attribute__((packed)) com_message_t;
+} com_message_t;
 
 typedef struct {
   com_parser_state_t state;
@@ -93,15 +100,12 @@ typedef struct {
 int com_init();
 int com_enable_interface(uint8_t new_interface, void (*callback)(com_message_t *));
 int com_disable_interface(uint8_t di_interface);
-
 int com_receive_message(uint8_t port);
 int com_parse_message(uint8_t *data, uint32_t len, uint8_t port);
 int com_put_message(com_message_t *msg);
 int com_send_messages(uint8_t port);
 int com_handler();
 int com_send_message_by_address(com_message_t *msg);
-int com_commands_read(com_message_t *msg_request);
-int com_commands_write(com_message_t *msg_request);
 int com_commands_send_error(com_message_t *msg);
 
 #endif /* COM_H_ */

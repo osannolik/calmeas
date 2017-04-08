@@ -95,6 +95,9 @@ class Serial_Handler(Process):
                     continue
                 else:
                     try:
+                        #k = ['{:#x}']*len(d)
+                        #logging.debug("COBS: {}".format(' '.join(k).format(*d)))
+
                         encoded_data = _cobs_encode(d)
 
                         k = ['{:#x}']*len(encoded_data)
@@ -125,6 +128,7 @@ class Serial_Handler(Process):
                 else:
                     decoded_range = 0
                     for i, rxbyte in enumerate(rxdata):
+                        #print "{} = {:#x}".format(i,rxbyte)
 
                         if rxbyte == 0:
                             try:

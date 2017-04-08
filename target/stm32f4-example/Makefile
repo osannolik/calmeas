@@ -9,7 +9,7 @@
 #### Project ####
 OUTDIR = build
 OBJDIR = $(OUTDIR)/obj
-OUTFILE = $(OUTDIR)/$(notdir $(shell pwd)).elf
+OUTFILE = $(OUTDIR)/stm32f4-example.elf
 OUTHEX = $(OUTFILE:.elf=.hex)
 OUTBIN = $(OUTFILE:.elf=.bin)
 OUTLIST = $(OUTFILE:.elf=.lst)

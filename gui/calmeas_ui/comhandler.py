@@ -22,14 +22,10 @@ class ComHandler():
         if b==FRAME_START:
             self.new_frame = bytearray()
             self.new_frame.append(b)
-            return self._GetHeader
+            return self._GetSize_1
         else:
             logging.warning('{} is not start'.format(b))
             return self._WaitForStart
-
-    def _GetHeader(self, b):
-        self.new_frame.append(b)
-        return self._GetSize_1
 
     def _GetSize_1(self, b):
         self.new_frame.append(b)
@@ -41,13 +37,17 @@ class ComHandler():
         b_l = int(self.new_frame[-2])
         self.expected_data_len = b_h | b_l
 
+        return self._GetHeader
+
+    def _GetHeader(self, b):
+        self.new_frame.append(b)
         if self.expected_data_len==0:
             self.full_frames.append(self.new_frame)
             return self._WaitForStart
         else:
             self.data_cntr = 0
             return self._GetData
-
+            
     def _GetData(self, b):
         self.new_frame.append(b)
         self.data_cntr += 1
@@ -108,6 +108,9 @@ class ComHandler():
 
             for framebytes in full_frames:
                 frame = ComFrame(framebytes)
+
+                #print "{}".format(frame.FrameBytesFormatted())
+                #print "IsValid = {}".format(frame.Validity())
 
                 interface = int(frame.interface)
                 if interface in self._interfaces.keys():
